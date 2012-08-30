@@ -290,6 +290,62 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 9000000,
 		.invert_pxl_clk = 0,
 	},
+	/* Prime-View PD035VL1 */
+	[3] = {
+		.name = "PV_PD035VL1",
+		.width = 640,
+		.height = 480,
+		.hfp = 18,
+		.hbp = 46,
+		.hsw = 96,
+		.vfp = 10,
+		.vbp = 33,
+		.vsw = 2,
+		.pxl_clk = 25000000,
+		.invert_pxl_clk = 1,
+	},
+	/* Prime-View PD050VL1 */
+	[4] = {
+		.name = "PV_PD050VL1",
+		.width = 640,
+		.height = 480,
+		.hfp = 18,
+		.hbp = 46,
+		.hsw = 96,
+		.vfp = 10,
+		.vbp = 33,
+		.vsw = 2,
+		.pxl_clk = 25000000,
+		.invert_pxl_clk = 1,
+	},
+	/* Prime-View PM070WL4 */
+	[5] = {
+		.name = "PV_PM070WL4",
+		.width = 800,
+		.height = 480,
+		.hfp = 42,
+		.hbp = 86,
+		.hsw = 128,
+		.vfp = 10,
+		.vbp = 33,
+		.vsw = 2,
+		.pxl_clk = 32000000,
+		.invert_pxl_clk = 1,
+	},
+	/* Prime-View PD104SLF */
+	[6] = {
+		.name = "PV_PD104SLF",
+		.width = 800,
+		.height = 480,
+		.hfp = 42,
+		.hbp = 86,
+		.hsw = 128,
+		.vfp = 1,
+		.vbp = 23,
+		.vsw = 4,
+		.pxl_clk = 40000000,
+		.invert_pxl_clk = 1,
+	},
 };
 
 static inline bool is_raster_enabled(void)
@@ -768,6 +824,7 @@ static int lcd_init(struct da8xx_fb_par *par, const struct lcd_ctrl_config *cfg,
 
 
 	if ((QVGA != cfg->p_disp_panel->panel_type) &&
+			(VGA != cfg->p_disp_panel->panel_type) &&
 			(WVGA != cfg->p_disp_panel->panel_type))
 		return -EINVAL;
 

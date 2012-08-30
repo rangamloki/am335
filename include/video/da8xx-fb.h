@@ -14,6 +14,7 @@
 
 enum panel_type {
 	QVGA = 0,
+	VGA,
 	WVGA,
 };
 

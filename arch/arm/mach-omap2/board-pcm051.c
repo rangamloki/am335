@@ -97,7 +97,7 @@ static struct platform_pwm_backlight_data am335x_backlight_data = {
 
 static struct lcd_ctrl_config lcd_cfg = {
 	&disp_panel,
-	.ac_bias		= 255,
+	.ac_bias		= 40,
 	.ac_bias_intrpt		= 0,
 	.dma_burst_sz		= 16,
 	.bpp			= 32,
@@ -113,9 +113,9 @@ static struct lcd_ctrl_config lcd_cfg = {
 };
 
 struct da8xx_lcdc_platform_data lcdc_pdata = {
-	.manu_name		= "ThreeFive",
+	.manu_name		= "PrimeView",
 	.controller_data	= &lcd_cfg,
-	.type			= "TFC_S9700RTWV35TR_01B",
+	.type			= "PV_PM070WL4",
 };
 
 #include "common.h"
@@ -461,22 +461,15 @@ static void lcdc_init(void)
 	return;
 }
 
-/*static void tsc_init(void)
+static void tsc_init(void)
 {
 	int err;
 
-	if (gp_evm_revision == GP_EVM_REV_IS_1_1A) {
-		am335x_touchscreen_data.analog_input = 1;
-		pr_info("TSC connected to beta GP EVM\n");
-	} else {
-		am335x_touchscreen_data.analog_input = 0;
-		pr_info("TSC connected to alpha GP EVM\n");
-	}
 	setup_pin_mux(tsc_pin_mux);
-	err = platform_device_register(&tsc_device);
+	err = am33xx_register_mfd_tscadc(&tscadc);
 	if (err)
 		pr_err("failed to register touchscreen device\n");
-}*/
+}
 
 static void rgmii2_init(void)
 {
