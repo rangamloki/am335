@@ -685,6 +685,7 @@ static void pcm051_mux_init(void)
 
 static void pcm051_setup(struct memory_accessor *mem_acc, void *context)
 {
+	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII1_RGMII2, NULL, NULL);
 
 	return;
 }

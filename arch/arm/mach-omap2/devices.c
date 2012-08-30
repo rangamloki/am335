@@ -1207,7 +1207,7 @@ static struct cpsw_slave_data am33xx_cpsw_slaves[] = {
 	{
 		.slave_reg_ofs  = 0x300,
 		.sliver_reg_ofs = 0xdc0,
-		.phy_id		= "0:01",
+		.phy_id		= "0:02",
 		.dual_emac_reserved_vlan = CPSW_PORT_VLAN_SLAVE_1,
 	},
 };
@@ -1284,11 +1284,11 @@ int am33xx_cpsw_init(enum am33xx_cpsw_mac_mode mode, unsigned char *phy_id0,
 	am33xx_cpsw_slaves[0].mac_addr[5] = (mac_lo & 0xFF00) >> 8;
 
 	/* Read MACID0 from eeprom if eFuse MACID is invalid */
-	if (!is_valid_ether_addr(am33xx_cpsw_slaves[0].mac_addr)) {
+/*	if (!is_valid_ether_addr(am33xx_cpsw_slaves[0].mac_addr)) {
 		for (i = 0; i < ETH_ALEN; i++)
 			am33xx_cpsw_slaves[0].mac_addr[i] = am33xx_macid0[i];
 	}
-
+*/
 	mac_lo = omap_ctrl_readl(TI81XX_CONTROL_MAC_ID1_LO);
 	mac_hi = omap_ctrl_readl(TI81XX_CONTROL_MAC_ID1_HI);
 	am33xx_cpsw_slaves[1].mac_addr[0] = mac_hi & 0xFF;
@@ -1299,10 +1299,11 @@ int am33xx_cpsw_init(enum am33xx_cpsw_mac_mode mode, unsigned char *phy_id0,
 	am33xx_cpsw_slaves[1].mac_addr[5] = (mac_lo & 0xFF00) >> 8;
 
 	/* Read MACID1 from eeprom if eFuse MACID is invalid */
-	if (!is_valid_ether_addr(am33xx_cpsw_slaves[1].mac_addr)) {
+/*	if (!is_valid_ether_addr(am33xx_cpsw_slaves[1].mac_addr)) {
 		for (i = 0; i < ETH_ALEN; i++)
 			am33xx_cpsw_slaves[1].mac_addr[i] = am33xx_macid1[i];
 	}
+*/
 
 	switch (mode) {
 	case AM33XX_CPSW_MODE_MII:
@@ -1315,6 +1316,9 @@ int am33xx_cpsw_init(enum am33xx_cpsw_mac_mode mode, unsigned char *phy_id0,
 		gmii_sel = AM33XX_RGMII_MODE_EN;
 		am33xx_cpsw_slaves[0].phy_if = PHY_INTERFACE_MODE_RGMII;
 		am33xx_cpsw_slaves[1].phy_if = PHY_INTERFACE_MODE_RGMII;
+		break;
+	case AM33XX_CPSW_MODE_RMII1_RGMII2:
+		gmii_sel = AM33XX_RMII1_RGMII2_MODE_EN;
 		break;
 	default:
 		return -EINVAL;
