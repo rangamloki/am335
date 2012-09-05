@@ -176,8 +176,12 @@ static struct phy_driver ksz9021_driver = {
 	.phy_id		= PHY_ID_KSZ9021,
 	.phy_id_mask	= 0x000ffffe,
 	.name		= "Micrel KSZ9021 Gigabit PHY",
+#ifdef CONFIG_MACH_PCM051
+	.features	= (PHY_GBIT_FEATURES | SUPPORTED_Pause),
+#else
 	.features	= (PHY_GBIT_FEATURES | SUPPORTED_Pause
 				| SUPPORTED_Asym_Pause),
+#endif
 	.flags		= PHY_HAS_MAGICANEG | PHY_HAS_INTERRUPT,
 	.config_init	= kszphy_config_init,
 	.config_aneg	= genphy_config_aneg,

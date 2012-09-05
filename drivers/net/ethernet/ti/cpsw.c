@@ -943,14 +943,13 @@ static void _cpsw_adjust_link(struct cpsw_slave *slave,
 		mac_control = priv->data.mac_control;
 		if (phy->speed == 10)
 			mac_control |= BIT(18); /* In Band mode */
-		if (phy->speed == 1000) {
+		if (phy->speed == 1000)
 			mac_control |= BIT(7);	/* Enable gigabit mode */
-		}
 		if (phy->speed == 100)
 			mac_control |= BIT(15);
 		if (phy->duplex)
 			mac_control |= BIT(0);	/* FULLDUPLEXEN	*/
-		if (phy->interface == PHY_INTERFACE_MODE_RGMII) /* RGMII */
+		if (phy->interface != PHY_INTERFACE_MODE_MII) /* RGMII or RMII*/
 			mac_control |= (BIT(15)|BIT(16));
 		*link = true;
 	} else {

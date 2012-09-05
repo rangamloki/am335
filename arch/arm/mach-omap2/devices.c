@@ -1204,6 +1204,7 @@ static struct cpsw_slave_data am33xx_cpsw_slaves[] = {
 		.phy_id		= "0:00",
 		.dual_emac_reserved_vlan = CPSW_PORT_VLAN_SLAVE_0,
 	},
+
 	{
 		.slave_reg_ofs  = 0x300,
 		.sliver_reg_ofs = 0xdc0,
@@ -1233,6 +1234,7 @@ static struct cpsw_platform_data am33xx_cpsw_pdata = {
 	.host_port_num		= 0,
 	.no_bd_ram		= false,
 	.version		= CPSW_VERSION_2,
+	.default_vlan		= CPSW_PORT_VLAN_SLAVE_1,
 };
 
 static struct mdio_platform_data am33xx_cpsw_mdiopdata = {

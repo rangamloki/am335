@@ -42,6 +42,7 @@
 #include <linux/reboot.h>
 #include <linux/pwm/pwm.h>
 #include <linux/opp.h>
+#include <linux/micrel_phy.h>
 
 /* LCD controller is similar to DA850 */
 #include <video/da8xx-fb.h>
@@ -69,6 +70,21 @@
 #include "mux.h"
 #include "devices.h"
 #include "hsmmc.h"
+
+/* KSZ9021 PHY/MDIO REGS */
+#define KSZ9021_EXTCTRL		0xB
+#define KSZ9021_EXTWR		0xC
+#define KSZ9021_EXTRD		0xD
+#define KSZ9021_WRBIT		BIT(15)
+
+#define KSZ9021_CLKSKEW		0x104
+#define KSZ9021_CLKSKEW_VAL	0x7070
+
+#define KSZ9021_RXSKEW         0x105
+#define KSZ9021_RXSKEW_VAL     0x0000
+
+#define KSZ9021_TXSKEW         0x106
+#define KSZ9021_TXSKEW_VAL     0x0000
 
 /* Convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
@@ -683,9 +699,38 @@ static void pcm051_mux_init(void)
 	pcm051_mux_dev_cfg(CBMUX_VAL);
 }
 
+static int am335x_ksz9021_phy_fixup(struct phy_device *phydev)
+{
+	/* Set KSZ9021_CLKSKEW */
+	phy_write(phydev, KSZ9021_EXTCTRL, (KSZ9021_WRBIT | KSZ9021_CLKSKEW));
+	phy_write(phydev, KSZ9021_EXTWR, KSZ9021_CLKSKEW_VAL);
+
+	phy_write(phydev, KSZ9021_EXTCTRL, KSZ9021_CLKSKEW);
+	printk(KERN_INFO "CLKSKEW == 0x%x\n", (phy_read(phydev,
+					KSZ9021_EXTRD)));
+
+	/* Set KSZ9021_RXSKEW */
+	phy_write(phydev, KSZ9021_EXTCTRL, (KSZ9021_WRBIT | KSZ9021_RXSKEW));
+	phy_write(phydev, KSZ9021_EXTWR, KSZ9021_RXSKEW_VAL);
+
+	phy_write(phydev, KSZ9021_EXTCTRL, KSZ9021_RXSKEW);
+	printk(KERN_INFO "RXSKEW == 0x%x\n", (phy_read(phydev, KSZ9021_EXTRD)));
+
+	/* Set KSZ9021_TXSKEW */
+	phy_write(phydev, KSZ9021_EXTCTRL, (KSZ9021_WRBIT | KSZ9021_TXSKEW));
+	phy_write(phydev, KSZ9021_EXTWR, KSZ9021_TXSKEW_VAL);
+
+	phy_write(phydev, KSZ9021_EXTCTRL, KSZ9021_TXSKEW);
+	printk(KERN_INFO "TXSKEW == 0x%x\n", (phy_read(phydev, KSZ9021_EXTRD)));
+
+	return 0;
+}
+
 static void pcm051_setup(struct memory_accessor *mem_acc, void *context)
 {
 	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII1_RGMII2, NULL, NULL);
+	phy_register_fixup_for_uid(PHY_ID_KSZ9021, 0x000ffffe,
+					am335x_ksz9021_phy_fixup);
 
 	return;
 }
@@ -718,11 +763,27 @@ static struct regulator_init_data am335x_vdd1 = {
 	.consumer_supplies	= am335x_vdd1_supply,
 };
 
+static struct regulator_consumer_supply am335x_vdd2_supply[] = {
+	REGULATOR_SUPPLY("vdd_core", NULL),
+};
+
+static struct regulator_init_data am335x_vdd2 = {
+	.constraints = {
+		.min_uV                 = 600000,
+		.max_uV                 = 1500000,
+		.valid_modes_mask       = REGULATOR_MODE_NORMAL,
+		.valid_ops_mask         = REGULATOR_CHANGE_VOLTAGE,
+		.always_on              = 1,
+	},
+	.num_consumer_supplies  = ARRAY_SIZE(am335x_vdd2_supply),
+	.consumer_supplies      = am335x_vdd2_supply,
+};
+
 static struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VRTC]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VIO]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDD1]	= &am335x_vdd1,
-	.tps65910_pmic_init_data[TPS65910_REG_VDD2]	= &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDD2]	= &am335x_vdd2,
 	.tps65910_pmic_init_data[TPS65910_REG_VDD3]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDIG1]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDIG2]	= &am335x_dummy,
@@ -858,10 +919,8 @@ static void __init pcm051_init(void)
 	omap_sdrc_init(NULL, NULL);
 	usb_musb_init(&musb_board_data);
 	/* Create an alias for icss clock */
-	if (clk_add_alias("pruss", NULL, "icss_uart_gclk", NULL))
-		pr_warn("failed to create an alias: icss_uart_gclk --> pruss\n");
-	if (clk_add_alias("pruss", NULL, "icss_fck", NULL))
-		pr_warn("failed to create an alias: icss_fck --> pruss\n");
+	if (clk_add_alias("pruss", NULL, "pruss_uart_gclk", NULL))
+		pr_warn("failed to create an alias: pruss_uart_gclk --> pruss\n");
 	/* Create an alias for gfx/sgx clock */
 	if (clk_add_alias("sgx_ck", NULL, "gfx_fclk", NULL))
 		pr_warn("failed to create an alias: gfx_fclk --> sgx_ck\n");
