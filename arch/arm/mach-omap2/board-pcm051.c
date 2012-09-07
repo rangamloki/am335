@@ -413,6 +413,43 @@ static struct pinmux_config ecap0_pin_mux[] = {
 	{NULL, 0},
 };
 
+#define PCM051_WLAN_IRQ_GPIO	GPIO_TO_PIN(1, 25)
+#define PCM051_WLAN_EN		GPIO_TO_PIN(1, 24)
+#define PCM051_BT_EN		GPIO_TO_PIN(1, 22)
+
+struct wl12xx_platform_data pcm051_wlan_data = {
+	.irq = OMAP_GPIO_IRQ(PCM051_WLAN_IRQ_GPIO),
+	.board_ref_clock = WL12XX_REFCLOCK_38_XTAL, /* 38.4Mhz */
+	.bt_enable_gpio = PCM051_BT_EN,
+	.wlan_enable_gpio = PCM051_WLAN_EN,
+};
+
+/* Module pin mux for wlan and bluetooth */
+static struct pinmux_config mmc2_wl12xx_pin_mux[] = {
+	{"gpmc_a1.mmc2_dat0", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_a2.mmc2_dat1", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_a3.mmc2_dat2", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ben1.mmc2_dat3", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_csn3.mmc2_cmd", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_clk.mmc2_clk", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+static struct pinmux_config uart1_wl12xx_pin_mux[] = {
+	{"uart1_ctsn.uart1_ctsn", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"uart1_rtsn.uart1_rtsn", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT},
+	{"uart1_rxd.uart1_rxd", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"uart1_txd.uart1_txd", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL},
+	{NULL, 0},
+};
+
+static struct pinmux_config wl12xx_pin_mux[] = {
+	{"gpmc_a6.gpio1_22", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
+	{"gpmc_a8.gpio1_24", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a9.gpio1_25", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
+	{NULL, 0},
+};
+
 static int backlight_enable;
 
 static void enable_ecap0(void)
@@ -605,6 +642,87 @@ static void pcm051_nand_init(void)
 	omap_init_elm();
 }
 
+static void mmc2_wl12xx_init(void)
+{
+	setup_pin_mux(mmc2_wl12xx_pin_mux);
+
+	am335x_mmc[1].mmc = 3;
+	am335x_mmc[1].name = "wl1271";
+	am335x_mmc[1].caps = MMC_CAP_4_BIT_DATA | MMC_CAP_POWER_OFF_CARD;
+	am335x_mmc[1].nonremovable = true;
+	am335x_mmc[1].gpio_cd = -EINVAL;
+	am335x_mmc[1].gpio_wp = -EINVAL;
+/*	am335x_mmc[1].ocr_mask = MMC_VDD_165_195; */ /* 1V8 */
+	am335x_mmc[1].ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34; /* 3V3 */
+
+	/* mmc will be initialized when mmc0_init is called */
+	return;
+}
+
+static void uart1_wl12xx_init(void)
+{
+	setup_pin_mux(uart1_wl12xx_pin_mux);
+}
+
+static void wl12xx_bluetooth_enable(void)
+{
+	int status = gpio_request(pcm051_wlan_data.bt_enable_gpio,
+		"bt_en\n");
+	if (status < 0)
+		pr_err("Failed to request gpio for bt_enable");
+
+	pr_info("Configure Bluetooth Enable pin...\n");
+	gpio_direction_output(pcm051_wlan_data.bt_enable_gpio, 0);
+}
+
+static int wl12xx_set_power(struct device *dev, int slot, int on, int vdd)
+{
+	if (on) {
+		gpio_direction_output(pcm051_wlan_data.wlan_enable_gpio, 1);
+		mdelay(70);
+	} else {
+		gpio_direction_output(pcm051_wlan_data.wlan_enable_gpio, 0);
+	}
+
+	return 0;
+}
+
+static void wl12xx_init(void)
+{
+	struct device *dev;
+	struct omap_mmc_platform_data *pdata;
+	int ret;
+
+	setup_pin_mux(wl12xx_pin_mux);
+	wl12xx_bluetooth_enable();
+
+	if (wl12xx_set_platform_data(&pcm051_wlan_data))
+		pr_err("error setting wl12xx data\n");
+
+	dev = am335x_mmc[1].dev;
+	if (!dev) {
+		pr_err("wl12xx mmc device initialization failed\n");
+		goto out;
+	}
+
+	pdata = dev->platform_data;
+	if (!pdata) {
+		pr_err("Platfrom data of wl12xx device not set\n");
+		goto out;
+	}
+
+	ret = gpio_request_one(pcm051_wlan_data.wlan_enable_gpio,
+		GPIOF_OUT_INIT_LOW, "wlan_en");
+	if (ret) {
+		pr_err("Error requesting wlan enable gpio: %d\n", ret);
+		goto out;
+	}
+
+	pdata->slots[0].set_power = wl12xx_set_power;
+out:
+	return;
+}
+
 static void d_can_init(void)
 {
 	/* Instance Zero */
@@ -651,24 +769,38 @@ static void set_pcm051_cbmux_gpios(int jp4, int jp3)
 
 static void pcm051_mux_dev_cfg(int mux_val)
 {
-	if (2 == mux_val) {
+	switch (mux_val) {
+	case 1:
+		enable_ecap0();
+		cbmux_gpio_init();
+		d_can_init();
+		lcdc_init();
+		tsc_init();
+		mmc2_wl12xx_init();
+		mmc0_init();
+		uart1_wl12xx_init();
+		wl12xx_init();
+		break;
+	case 2:
 		enable_ecap0();
 		cbmux_gpio_init();
 		d_can_init();
 		lcdc_init();
 		tsc_init();
 		rmii1_init();
-		rgmii2_init();
-		usb0_init();
-		usb1_init();
-		uart2_init();
-		uart3_init();
-		pcm051_nand_init();
 		mmc0_init();
-		spi0_init();
-	} else {
+		rgmii2_init();
+		break;
+	default:
 		pr_info("Other configurations have not been implemented\n");
 	}
+
+	usb0_init();
+	usb1_init();
+	uart2_init();
+	uart3_init();
+	pcm051_nand_init();
+	spi0_init();
 
 	return;
 }
@@ -728,9 +860,11 @@ static int am335x_ksz9021_phy_fixup(struct phy_device *phydev)
 
 static void pcm051_setup(struct memory_accessor *mem_acc, void *context)
 {
-	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII1_RGMII2, NULL, NULL);
-	phy_register_fixup_for_uid(PHY_ID_KSZ9021, 0x000ffffe,
-					am335x_ksz9021_phy_fixup);
+	if (2 == CBMUX_VAL) {
+		am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII1_RGMII2, NULL, NULL);
+		phy_register_fixup_for_uid(PHY_ID_KSZ9021, 0x000ffffe,
+						am335x_ksz9021_phy_fixup);
+	}
 
 	return;
 }
@@ -763,27 +897,11 @@ static struct regulator_init_data am335x_vdd1 = {
 	.consumer_supplies	= am335x_vdd1_supply,
 };
 
-static struct regulator_consumer_supply am335x_vdd2_supply[] = {
-	REGULATOR_SUPPLY("vdd_core", NULL),
-};
-
-static struct regulator_init_data am335x_vdd2 = {
-	.constraints = {
-		.min_uV                 = 600000,
-		.max_uV                 = 1500000,
-		.valid_modes_mask       = REGULATOR_MODE_NORMAL,
-		.valid_ops_mask         = REGULATOR_CHANGE_VOLTAGE,
-		.always_on              = 1,
-	},
-	.num_consumer_supplies  = ARRAY_SIZE(am335x_vdd2_supply),
-	.consumer_supplies      = am335x_vdd2_supply,
-};
-
 static struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VRTC]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VIO]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDD1]	= &am335x_vdd1,
-	.tps65910_pmic_init_data[TPS65910_REG_VDD2]	= &am335x_vdd2,
+	.tps65910_pmic_init_data[TPS65910_REG_VDD2]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDD3]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDIG1]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDIG2]	= &am335x_dummy,

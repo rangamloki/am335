@@ -32,6 +32,7 @@
 #include <linux/slab.h>
 #include <linux/wl12xx.h>
 #include <linux/sched.h>
+#include <linux/gpio.h>
 
 #include "wl12xx.h"
 #include "wl12xx_80211.h"
@@ -1837,6 +1838,10 @@ static u8 wl12xx_get_role_type(struct wl1271 *wl)
 	return WL12XX_INVALID_ROLE_TYPE;
 }
 
+#ifdef CONFIG_MACH_PCM051
+#define WLAN_EN          56 /* 32 * bank (1) + gpio (24)*/
+#endif
+
 static int wl1271_op_add_interface(struct ieee80211_hw *hw,
 				   struct ieee80211_vif *vif)
 {
@@ -1849,6 +1854,9 @@ static int wl1271_op_add_interface(struct ieee80211_hw *hw,
 
 	wl1271_debug(DEBUG_MAC80211, "mac80211 add interface type %d mac %pM",
 		     ieee80211_vif_type_p2p(vif), vif->addr);
+#ifdef CONFIG_MACH_PCM051
+	gpio_direction_output(WLAN_EN, 1);
+#endif
 
 	mutex_lock(&wl->mutex);
 	if (wl->vif) {
@@ -1985,6 +1993,10 @@ power_off:
 		     wl->enable_11a ? "" : "not ");
 
 out:
+#ifdef CONFIG_MACH_PCM051
+	if (ret < 0)
+		gpio_direction_output(WLAN_EN, 0);
+#endif
 	mutex_unlock(&wl->mutex);
 
 	mutex_lock(&wl_list_mutex);
@@ -4607,6 +4619,7 @@ static struct bin_attribute fwlog_attr = {
 int wl1271_register_hw(struct wl1271 *wl)
 {
 	int ret;
+	static const u8 nokia_oui[3] = {0x00, 0x1f, 0xdf};
 
 	if (wl->mac80211_registered)
 		return 0;
@@ -4625,6 +4638,13 @@ int wl1271_register_hw(struct wl1271 *wl)
 		wl->mac_addr[3] = nvs_ptr[5];
 		wl->mac_addr[4] = nvs_ptr[4];
 		wl->mac_addr[5] = nvs_ptr[3];
+		/*
+		 * We can't use the Ethernet address in the nvs file as it
+		 * is not specific to this station.  Rather, generate a
+		 * random address as the old wl12xx driver used to do.
+		 */
+		memcpy(wl->mac_addr, nokia_oui, 3);
+		get_random_bytes(wl->mac_addr + 3, 3);
 	}
 
 	SET_IEEE80211_PERM_ADDR(wl->hw, wl->mac_addr);
