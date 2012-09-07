@@ -447,6 +447,8 @@ static struct pinmux_config wl12xx_pin_mux[] = {
 	{"gpmc_a6.gpio1_22", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
 	{"gpmc_a8.gpio1_24", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{"gpmc_a9.gpio1_25", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
+	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
 	{NULL, 0},
 };
 
@@ -858,12 +860,29 @@ static int am335x_ksz9021_phy_fixup(struct phy_device *phydev)
 	return 0;
 }
 
+#define PHY_ISOLATE BIT(10)
+
+static int am335x_disable_phy(struct phy_device *phydev)
+{
+	phy_write(phydev, 0x0, PHY_ISOLATE);
+
+	return 0;
+}
+
 static void pcm051_setup(struct memory_accessor *mem_acc, void *context)
 {
-	if (2 == CBMUX_VAL) {
+	switch (CBMUX_VAL) {
+	case 1:
+		am33xx_cpsw_init(AM33XX_CPSW_MODE_MII, NULL, NULL);
+		phy_register_fixup(PHY_ANY_ID, PHY_ANY_UID, 0xffffffff,
+					am335x_disable_phy);
+		break;
+	case 2:
 		am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII1_RGMII2, NULL, NULL);
 		phy_register_fixup_for_uid(PHY_ID_KSZ9021, 0x000ffffe,
 						am335x_ksz9021_phy_fixup);
+	default:
+		break;
 	}
 
 	return;
