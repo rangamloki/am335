@@ -795,7 +795,7 @@ static struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VMMC]	= &am335x_dummy,
 };
 
-static struct i2c_board_info __initdata am335x_i2c_boardinfo[] = {
+static struct i2c_board_info __initdata pcm051_i2c_boardinfo[] = {
 	{
 		/* Baseboard board EEPROM */
 		I2C_BOARD_INFO("24c256", EEPROM_I2C_ADDR),
@@ -804,6 +804,10 @@ static struct i2c_board_info __initdata am335x_i2c_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
 		.platform_data  = &am335x_tps65910_info,
+	},
+	{
+		I2C_BOARD_INFO("rv4162c7", 0x68),
+		/* irq is defined at pcm051_rtc_irq_init() */
 	},
 };
 
@@ -821,8 +825,8 @@ static struct omap_musb_board_data musb_board_data = {
 
 static void __init pcm051_i2c_init(void)
 {
-	omap_register_i2c_bus(1, 100, am335x_i2c_boardinfo,
-				ARRAY_SIZE(am335x_i2c_boardinfo));
+	omap_register_i2c_bus(1, 100, pcm051_i2c_boardinfo,
+				ARRAY_SIZE(pcm051_i2c_boardinfo));
 }
 
 /* Enable clkout1 */
@@ -872,6 +876,29 @@ void __iomem *am33xx_get_gpio0_base(void)
 
 	return am33xx_gpio0_base;
 }
+#define GPIO_RTC_RV4162C7_IRQ	GPIO_TO_PIN(0, 20)
+
+static struct pinmux_config rtc_pin_mux[] = {
+	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+static void __init pcm051_rtc_irq_init(void)
+{
+	int r;
+
+	setup_pin_mux(rtc_pin_mux);
+
+	r = gpio_request_one(GPIO_RTC_RV4162C7_IRQ,
+				GPIOF_IN, "rtc-rv4162c7-irq");
+	if (r < 0) {
+		printk(KERN_WARNING "failed to request GPIO%d\n",
+				GPIO_RTC_RV4162C7_IRQ);
+		return;
+	}
+
+	pcm051_i2c_boardinfo[2].irq = gpio_to_irq(GPIO_RTC_RV4162C7_IRQ);
+}
 
 static struct resource am33xx_cpuidle_resources[] = {
 	{
@@ -913,6 +940,7 @@ static void __init pcm051_init(void)
 	am33xx_cpuidle_init();
 	am33xx_mux_init(board_mux);
 	pcm051_mux_init();
+	pcm051_rtc_irq_init();
 	omap_serial_init();
 	clkout1_enable();
 	pcm051_i2c_init();
