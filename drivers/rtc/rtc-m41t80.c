@@ -66,7 +66,8 @@
 #define M41T80_FEATURE_WD	(1 << 3)	/* Extra watchdog resolution */
 #define M41T80_FEATURE_SQ_ALT	(1 << 4)	/* RSx bits are in reg 4 */
 
-#define DRV_VERSION "0.05"
+#define DRV_NAME		"rtc-m41t80"
+#define DRV_VERSION		"0.05"
 
 static DEFINE_MUTEX(m41t80_rtc_mutex);
 static const struct i2c_device_id m41t80_id[] = {
@@ -354,22 +355,44 @@ static int m41t80_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *t)
 	return 0;
 }
 
+static irqreturn_t m41t80_rtc_interrupt(int irq, void *data)
+{
+	struct i2c_client *client = data;
+	struct m41t80_data *clientdata = i2c_get_clientdata(client);
+	u8 wbuf[M41T80_ALARM_REG_SIZE];
+	u8 *reg = wbuf - M41T80_REG_ALARM_MON;
+
+	/* disable alarm */
+	if (i2c_smbus_read_i2c_block_data(client, M41T80_REG_ALARM_MON,
+			M41T80_ALARM_REG_SIZE, wbuf) < 0)
+		dev_err(&client->dev, "read error\n");
+
+	reg[M41T80_REG_ALARM_MON] &= ~0xbf;
+	reg[M41T80_REG_ALARM_DAY] = 0;
+	reg[M41T80_REG_ALARM_HOUR] = 0;
+	reg[M41T80_REG_ALARM_MIN] = 0;
+	reg[M41T80_REG_ALARM_SEC] = 0;
+
+	if (i2c_smbus_write_i2c_block_data(client, M41T80_REG_ALARM_MON,
+				M41T80_ALARM_REG_SIZE, wbuf) < 0)
+		dev_err(&client->dev, "write error\n");
+
+	/* clear interrupt with reading the flag register*/
+	if (i2c_smbus_read_byte_data(client, M41T80_REG_FLAGS) < 0)
+		dev_err(&client->dev, "read error\n");
+
+	rtc_update_irq(clientdata->rtc, 1, RTC_IRQF | RTC_AF);
+
+	return IRQ_HANDLED;
+}
+
 static struct rtc_class_ops m41t80_rtc_ops = {
 	.read_time = m41t80_rtc_read_time,
 	.set_time = m41t80_rtc_set_time,
-	/*
-	 * XXX - m41t80 alarm functionality is reported broken.
-	 * until it is fixed, don't register alarm functions.
-	 *
 	.read_alarm = m41t80_rtc_read_alarm,
 	.set_alarm = m41t80_rtc_set_alarm,
-	*/
 	.proc = m41t80_rtc_proc,
-	/*
-	 * See above comment on broken alarm
-	 *
 	.alarm_irq_enable = m41t80_rtc_alarm_irq_enable,
-	*/
 };
 
 #if defined(CONFIG_RTC_INTF_SYSFS) || defined(CONFIG_RTC_INTF_SYSFS_MODULE)
@@ -842,6 +865,14 @@ static int m41t80_probe(struct i2c_client *client,
 	if (rc)
 		goto exit;
 
+	rc = request_threaded_irq(client->irq, NULL,
+			m41t80_rtc_interrupt,
+			IRQF_TRIGGER_FALLING,
+			DRV_NAME, client);
+
+	if (rc != 0)
+		dev_err(&client->dev, "Failed to request RTC IRQ\n");
+
 #ifdef CONFIG_RTC_DRV_M41T80_WDT
 	if (clientdata->features & M41T80_FEATURE_HT) {
 		save_client = client;
@@ -884,6 +915,8 @@ static int m41t80_remove(struct i2c_client *client)
 		unregister_reboot_notifier(&wdt_notifier);
 	}
 #endif
+	free_irq(client->irq, client);
+
 	if (rtc)
 		rtc_device_unregister(rtc);
 	kfree(clientdata);
@@ -893,7 +926,7 @@ static int m41t80_remove(struct i2c_client *client)
 
 static struct i2c_driver m41t80_driver = {
 	.driver = {
-		.name = "rtc-m41t80",
+		.name = DRV_NAME,
 	},
 	.probe = m41t80_probe,
 	.remove = m41t80_remove,
