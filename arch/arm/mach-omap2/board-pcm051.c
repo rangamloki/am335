@@ -363,9 +363,9 @@ static struct pinmux_config uart3_pin_mux[] = {
 	{NULL, 0},
 };
 
-static struct pinmux_config d_can0_pin_mux[] = {
-	{"mii1_txd3.dcan0_tx_mux0", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
-	{"mii1_txd2.dcan0_rx_mux0", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
+static struct pinmux_config d_can1_pin_mux[] = {
+	{"uart1_txd.dcan1_rx_mux2", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLUP},
+	{"uart1_rxd.dcan1_tx_mux2", OMAP_MUX_MODE2 | AM33XX_PULL_ENBL},
 	{NULL, 0},
 };
 
@@ -728,8 +728,8 @@ out:
 static void d_can_init(void)
 {
 	/* Instance Zero */
-	setup_pin_mux(d_can0_pin_mux);
-	am33xx_d_can_init(0);
+	setup_pin_mux(d_can1_pin_mux);
+	am33xx_d_can_init(1);
 }
 
 static void mmc0_init(void)
