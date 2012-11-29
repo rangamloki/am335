@@ -490,12 +490,17 @@ static struct platform_device am335x_backlight = {
 	}
 };
 
+static struct pwmss_platform_data pwm_pdata = {
+	.version = PWM_VERSION_1
+};
+
 static int __init ecap0_init(void)
 {
 	int status = 0;
 
 	if (backlight_enable) {
 		setup_pin_mux(ecap0_pin_mux);
+		am33xx_register_ecap(0, &pwm_pdata);
 		platform_device_register(&am335x_backlight);
 	}
 	return status;
