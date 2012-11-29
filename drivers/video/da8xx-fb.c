@@ -141,6 +141,7 @@ static resource_size_t da8xx_fb_reg_base;
 static struct resource *lcdc_regs;
 static unsigned int lcd_revision;
 static irq_handler_t lcdc_irq_handler;
+static char *panel_name;
 
 static inline unsigned int lcdc_read(unsigned int addr)
 {
@@ -1400,6 +1401,8 @@ static int __devinit fb_probe(struct platform_device *device)
 	resource_size_t len;
 	int ret, i, j;
 	unsigned long ulcm;
+	struct da8xx_panel *search_panels;
+	int num_search_panels;
 
 	if (selection_fb_pdata == NULL) {
 		dev_err(&device->dev, "Can not get platform data\n");
@@ -1454,19 +1457,41 @@ static int __devinit fb_probe(struct platform_device *device)
 		break;
 	}
 
-	for (i = 0; i < ARRAY_SIZE(known_lcd_panels); i++) {
+	if (panel_name) {
+		/* check if the specified panel is unknown */
+		for (i = 0; i < ARRAY_SIZE(known_lcd_panels); i++) {
+			if (strcmp(panel_name, known_lcd_panels[i].name) == 0) {
+				search_panels = known_lcd_panels + i;
+				num_search_panels = 1;
+				break;
+			}
+		}
+
+		/* the panel is unknown here, return error */
+		if (i == ARRAY_SIZE(known_lcd_panels)) {
+			dev_err(&device->dev, "GLCD: No valid panel found\n");
+			ret = -ENODEV;
+			goto err_pm_runtime_disable;
+		}
+	} else {
+		/* the panel was not specified at boot, search all */
+		search_panels = known_lcd_panels;
+		num_search_panels = ARRAY_SIZE(known_lcd_panels);
+	}
+
+	for (i = 0; i < num_search_panels; i++) {
 		for (j = 0; j < selection_fb_pdata->entries_cnt; j++) {
 			if (strcmp(selection_fb_pdata->entries_ptr[j].type,
-				known_lcd_panels[i].name) == 0) {
+					search_panels[i].name) == 0) {
 				fb_pdata = selection_fb_pdata->entries_ptr + j;
-				lcdc_info = known_lcd_panels + i;
-				goto lcdc_found;
+				lcdc_info = search_panels + i;
+				goto lcdc_search_end;
 			}
 		}
 	}
 
-lcdc_found:
-	if (i == ARRAY_SIZE(known_lcd_panels)) {
+lcdc_search_end:
+	if (i == num_search_panels) {
 		dev_err(&device->dev, "GLCD: No valid panel found\n");
 		ret = -ENODEV;
 		goto err_pm_runtime_disable;
@@ -1809,3 +1834,6 @@ module_exit(da8xx_fb_cleanup);
 MODULE_DESCRIPTION("Framebuffer driver for TI da8xx/omap-l1xx");
 MODULE_AUTHOR("Texas Instruments");
 MODULE_LICENSE("GPL");
+
+module_param(panel_name, charp, 0);
+MODULE_PARM_DESC(panel_name, "Specify which panel to use");
