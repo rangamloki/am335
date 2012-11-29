@@ -128,7 +128,7 @@ static struct lcd_ctrl_config lcd_cfg = {
 	.raster_order		= 0,
 };
 
-struct da8xx_lcdc_platform_data lcdc_pdata = {
+static struct da8xx_lcdc_platform_data lcdc_pdata = {
 	.manu_name		= "PrimeView",
 	.controller_data	= &lcd_cfg,
 	.type			= "PV_PM070WL4",
