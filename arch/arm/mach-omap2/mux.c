@@ -865,12 +865,16 @@ static int __init omap_mux_late_init(void)
 		}
 	}
 
-	ret = request_irq(omap_prcm_event_to_irq("io"),
-		omap_hwmod_mux_handle_irq, IRQF_SHARED | IRQF_NO_SUSPEND,
-			"hwmod_io", omap_mux_late_init);
+	if (!cpu_is_am33xx()) {
+		ret = request_irq(omap_prcm_event_to_irq("io"),
+					omap_hwmod_mux_handle_irq,
+					IRQF_SHARED | IRQF_NO_SUSPEND,
+					"hwmod_io", omap_mux_late_init);
 
-	if (ret)
-		pr_warning("mux: Failed to setup hwmod io irq %d\n", ret);
+		if (ret)
+			pr_warning("mux: Failed to setup hwmod io irq %d\n",
+									ret);
+	}
 
 	omap_mux_dbg_init();
 
