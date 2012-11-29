@@ -44,6 +44,11 @@ struct da8xx_lcdc_platform_data {
 	int  (*get_context_loss_count)(struct device *);
 };
 
+struct da8xx_lcdc_selection_platform_data {
+	struct da8xx_lcdc_platform_data *entries_ptr;
+	int entries_cnt;
+};
+
 struct lcd_ctrl_config {
 	const struct display_panel *p_disp_panel;
 

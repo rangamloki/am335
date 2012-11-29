@@ -146,6 +146,8 @@ struct da8xx_lcdc_platform_data  NHD_480272MF_ATXI_pdata = {
 	.type                   = "NHD-4.3-ATXI#-T-1",
 };
 
+static struct da8xx_lcdc_selection_platform_data da8xx_lcdc_selection;
+
 #include "common.h"
 
 #include <linux/lis3lv02d.h>
@@ -1049,7 +1051,6 @@ out:
 
 static void lcdc_init(int evm_id, int profile)
 {
-	struct da8xx_lcdc_platform_data *lcdc_pdata;
 	setup_pin_mux(lcdc_pin_mux);
 
 	if (conf_disp_pll(300000000)) {
@@ -1061,9 +1062,10 @@ static void lcdc_init(int evm_id, int profile)
 	case GEN_PURP_EVM:
 	case GEN_PURP_DDR3_EVM:
 		lcdc_pdata = &TFC_S9700RTWV35TR_01B_pdata;
+		da8xx_lcdc_selection.entries_ptr = &TFC_S9700RTWV35TR_01B_pdata;
 		break;
 	case EVM_SK:
-		lcdc_pdata = &NHD_480272MF_ATXI_pdata;
+		da8xx_lcdc_selection.entries_ptr = &NHD_480272MF_ATXI_pdata;
 		break;
 	default:
 		pr_err("LCDC not supported on this evm (%d)\n",evm_id);
@@ -1073,6 +1075,9 @@ static void lcdc_init(int evm_id, int profile)
 	lcdc_pdata->get_context_loss_count = omap_pm_get_dev_context_loss_count;
 
 	if (am33xx_register_lcdc(lcdc_pdata))
+		da8xx_lcdc_selection.entries_cnt = 1;
+
+	if (am33xx_register_lcdc(&da8xx_lcdc_selection))
 		pr_info("Failed to register LCDC device\n");
 
 	return;

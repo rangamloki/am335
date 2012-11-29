@@ -1389,18 +1389,19 @@ static unsigned int da8xxfb_pixel_clk_period(struct da8xx_fb_par *par)
 
 static int __devinit fb_probe(struct platform_device *device)
 {
-	struct da8xx_lcdc_platform_data *fb_pdata =
+	struct da8xx_lcdc_selection_platform_data *selection_fb_pdata =
 						device->dev.platform_data;
+	struct da8xx_lcdc_platform_data *fb_pdata;
 	struct lcd_ctrl_config *lcd_cfg;
 	struct da8xx_panel *lcdc_info;
 	struct fb_info *da8xx_fb_info;
 	struct clk *fb_clk = NULL;
 	struct da8xx_fb_par *par;
 	resource_size_t len;
-	int ret, i;
+	int ret, i, j;
 	unsigned long ulcm;
 
-	if (fb_pdata == NULL) {
+	if (selection_fb_pdata == NULL) {
 		dev_err(&device->dev, "Can not get platform data\n");
 		return -ENOENT;
 	}
@@ -1453,13 +1454,18 @@ static int __devinit fb_probe(struct platform_device *device)
 		break;
 	}
 
-	for (i = 0, lcdc_info = known_lcd_panels;
-		i < ARRAY_SIZE(known_lcd_panels);
-		i++, lcdc_info++) {
-		if (strcmp(fb_pdata->type, lcdc_info->name) == 0)
-			break;
+	for (i = 0; i < ARRAY_SIZE(known_lcd_panels); i++) {
+		for (j = 0; j < selection_fb_pdata->entries_cnt; j++) {
+			if (strcmp(selection_fb_pdata->entries_ptr[j].type,
+				known_lcd_panels[i].name) == 0) {
+				fb_pdata = selection_fb_pdata->entries_ptr + j;
+				lcdc_info = known_lcd_panels + i;
+				goto lcdc_found;
+			}
+		}
 	}
 
+lcdc_found:
 	if (i == ARRAY_SIZE(known_lcd_panels)) {
 		dev_err(&device->dev, "GLCD: No valid panel found\n");
 		ret = -ENODEV;

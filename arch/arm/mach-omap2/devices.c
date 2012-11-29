@@ -151,7 +151,8 @@ static struct platform_device omap2cam_device = {
 };
 #endif
 
-int __init am33xx_register_lcdc(struct da8xx_lcdc_platform_data *pdata)
+int __init am33xx_register_lcdc
+	(struct da8xx_lcdc_selection_platform_data *pdata)
 {
 	int id = 0;
 	struct platform_device *pdev;
@@ -166,7 +167,9 @@ int __init am33xx_register_lcdc(struct da8xx_lcdc_platform_data *pdata)
 	}
 
 	pdev = omap_device_build(dev_name, id, oh, pdata,
-			sizeof(struct da8xx_lcdc_platform_data), NULL, 0, 0);
+			sizeof(struct da8xx_lcdc_selection_platform_data),
+			NULL, 0, 0);
+
 	if (IS_ERR(pdev)) {
 		WARN(1, "Can't build omap_device for %s:%s.\n",
 			dev_name, oh->name);

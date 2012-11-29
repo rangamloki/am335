@@ -17,5 +17,5 @@
 #define __OMAP2_LCDC_H
 
 struct platform_device *am33xx_register_lcdc(
-		struct da8xx_lcdc_platform_data *pdata);
+		struct da8xx_lcdc_selection_platform_data *pdata);
 #endif

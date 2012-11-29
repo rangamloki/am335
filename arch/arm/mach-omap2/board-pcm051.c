@@ -128,10 +128,29 @@ static struct lcd_ctrl_config lcd_cfg = {
 	.raster_order		= 0,
 };
 
-static struct da8xx_lcdc_platform_data lcdc_pdata = {
-	.manu_name		= "PrimeView",
-	.controller_data	= &lcd_cfg,
-	.type			= "PV_PM070WL4",
+static struct da8xx_lcdc_platform_data lcdc_pdata[] = {
+	{
+		.manu_name		= "PrimeView",
+		.controller_data	= &lcd_cfg,
+		.type			= "PV_PM070WL4",
+	}, {
+		.manu_name		= "PrimeView",
+		.controller_data	= &lcd_cfg,
+		.type			= "PV_PD035VL1",
+	}, {
+		.manu_name		= "PrimeView",
+		.controller_data	= &lcd_cfg,
+		.type			= "PV_PD050VL1",
+	}, {
+		.manu_name		= "PrimeView",
+		.controller_data	= &lcd_cfg,
+		.type			= "PV_PD104SLF",
+	}
+};
+
+static struct da8xx_lcdc_selection_platform_data lcdc_selection_pdata = {
+	.entries_ptr = lcdc_pdata,
+	.entries_cnt = ARRAY_SIZE(lcdc_pdata)
 };
 
 #include "common.h"
@@ -511,7 +530,7 @@ static void lcdc_init(void)
 		return;
 	}
 
-	if (am33xx_register_lcdc(&lcdc_pdata))
+	if (am33xx_register_lcdc(&lcdc_selection_pdata))
 		pr_info("Failed to register LCDC device\n");
 	return;
 }

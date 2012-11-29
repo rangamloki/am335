@@ -641,9 +641,14 @@ static struct platform_device da8xx_lcdc_device = {
 	.resource	= da8xx_lcdc_resources,
 };
 
+static struct da8xx_lcdc_selection_platform_data da8xx_lcdc_selection;
+
 int __init da8xx_register_lcdc(struct da8xx_lcdc_platform_data *pdata)
 {
-	da8xx_lcdc_device.dev.platform_data = pdata;
+	da8xx_lcdc_selection.entries_ptr = pdata;
+	da8xx_lcdc_selection.entries_cnt = 1;
+	da8xx_lcdc_device.dev.platform_data = &da8xx_lcdc_selection;
+
 	return platform_device_register(&da8xx_lcdc_device);
 }
 
