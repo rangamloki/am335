@@ -291,18 +291,18 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 9000000,
 		.invert_pxl_clk = 0,
 	},
-	/* Prime-View PD035VL1 */
+	/* Prime-View PM070WL4 */
 	[3] = {
-		.name = "PV_PD035VL1",
-		.width = 640,
+		.name = "PV_PM070WL4",
+		.width = 800,
 		.height = 480,
-		.hfp = 18,
-		.hbp = 46,
-		.hsw = 96,
+		.hfp = 42,
+		.hbp = 86,
+		.hsw = 128,
 		.vfp = 10,
 		.vbp = 33,
 		.vsw = 2,
-		.pxl_clk = 25000000,
+		.pxl_clk = 32000000,
 		.invert_pxl_clk = 1,
 	},
 	/* Prime-View PD050VL1 */
@@ -319,18 +319,18 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 25000000,
 		.invert_pxl_clk = 1,
 	},
-	/* Prime-View PM070WL4 */
+	/* Prime-View PD035VL1 */
 	[5] = {
-		.name = "PV_PM070WL4",
-		.width = 800,
+		.name = "PV_PD035VL1",
+		.width = 640,
 		.height = 480,
-		.hfp = 42,
-		.hbp = 86,
-		.hsw = 128,
+		.hfp = 18,
+		.hbp = 46,
+		.hsw = 96,
 		.vfp = 10,
 		.vbp = 33,
 		.vsw = 2,
-		.pxl_clk = 32000000,
+		.pxl_clk = 25000000,
 		.invert_pxl_clk = 1,
 	},
 	/* Prime-View PD104SLF */
