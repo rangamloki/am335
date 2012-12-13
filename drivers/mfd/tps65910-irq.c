@@ -205,7 +205,7 @@ int tps65910_irq_init(struct tps65910 *tps65910, int irq,
 	ret = request_threaded_irq(irq, NULL, tps65910_irq, flags,
 				   "tps65910", tps65910);
 
-	irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
+	irq_set_irq_type(irq, IRQ_TYPE_LEVEL_HIGH);
 
 	if (ret != 0)
 		dev_err(tps65910->dev, "Failed to request IRQ: %d\n", ret);

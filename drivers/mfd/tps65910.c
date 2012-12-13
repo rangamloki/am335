@@ -21,13 +21,27 @@
 #include <linux/mfd/core.h>
 #include <linux/mfd/tps65910.h>
 
+#ifdef CONFIG_RTC_DRV_TPS65910
+static struct resource rtc_resources[] = {
+	{
+		.name = "tps65910-rtc",
+		.flags = IORESOURCE_IRQ,
+		.start = 0,		/* filled in later */
+	},
+};
+#endif
+
 static struct mfd_cell tps65910s[] = {
 	{
 		.name = "tps65910-pmic",
 	},
+#ifdef CONFIG_RTC_DRV_TPS65910
 	{
 		.name = "tps65910-rtc",
+		.resources = rtc_resources,
+		.num_resources = ARRAY_SIZE(rtc_resources),
 	},
+#endif
 	{
 		.name = "tps65910-power",
 	},
@@ -162,7 +176,7 @@ static int tps65910_i2c_probe(struct i2c_client *i2c,
 	mutex_init(&tps65910->io_mutex);
 
 	/* Check that the device is actually there */
-	ret = tps65910_i2c_read(tps65910, 0x0, 1, &buff);
+	ret = tps65910_i2c_read(tps65910, 0x80, 1, &buff);
 	if (ret < 0) {
 		dev_err(tps65910->dev, "could not be detected\n");
 		ret = -ENODEV;
@@ -177,13 +191,24 @@ static int tps65910_i2c_probe(struct i2c_client *i2c,
 		goto err;
 	}
 
+#ifdef CONFIG_RTC_DRV_TPS65910
+	rtc_resources[0].start = TWL4030_IRQ_BASE + TPS65910_IRQ_RTC_ALARM;
+
+	/* Clear RTC_PWDN bit */
+	tps65910_clear_bits(tps65910, TPS65910_DEVCTRL, 0x40);
+#else
+	/* Set RTC_PWDN bit */
+	tps65910_set_bits(tps65910, TPS65910_DEVCTRL, 0x40);
+#endif
 	ret = mfd_add_devices(tps65910->dev, -1, tps65910s,
 			ARRAY_SIZE(tps65910s), NULL, 0);
 	if (ret < 0)
 		goto err;
 
 	init_data->irq = pmic_plat_data->irq;
-	init_data->irq_base = pmic_plat_data->irq_base;
+	init_data->irq_base = TWL4030_IRQ_BASE;
+	tps65910->irq_base = TWL4030_IRQ_BASE;
+	tps65910->irq_num = TWL4030_BASE_NR_IRQS;
 
 	tps65910_gpio_init(tps65910, pmic_plat_data->gpio_base);
 
