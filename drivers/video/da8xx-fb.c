@@ -1392,9 +1392,9 @@ static int __devinit fb_probe(struct platform_device *device)
 {
 	struct da8xx_lcdc_selection_platform_data *selection_fb_pdata =
 						device->dev.platform_data;
-	struct da8xx_lcdc_platform_data *fb_pdata;
+	struct da8xx_lcdc_platform_data *fb_pdata = NULL;
 	struct lcd_ctrl_config *lcd_cfg;
-	struct da8xx_panel *lcdc_info;
+	struct da8xx_panel *lcdc_info = NULL;
 	struct fb_info *da8xx_fb_info;
 	struct clk *fb_clk = NULL;
 	struct da8xx_fb_par *par;
