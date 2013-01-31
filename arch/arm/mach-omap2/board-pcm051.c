@@ -395,6 +395,8 @@ static struct pinmux_config d_can1_pin_mux[] = {
 static struct pinmux_config cbmux_gpio_pin_mux[] = {
 	{"uart0_ctsn.d_can1_tx", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{"uart0_rtsn.d_can1_rx", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+	{"emu0.gpio3_7", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{"emu1.gpio3_8", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	{NULL, 0},
 };
 
