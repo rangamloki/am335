@@ -28,6 +28,7 @@
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/export.h>
+#include <linux/mfd/tps65910.h>
 #include <linux/mfd/tps65217.h>
 #include <linux/reboot.h>
 #include <linux/opp.h>
@@ -53,6 +54,8 @@
 /* Convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 #include "common.h"
+
+#define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(1, 19)
 
 static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
 	{
@@ -120,8 +123,68 @@ static struct pinmux_config i2c1_pin_mux[] = {
 	{NULL, 0},
 };
 
+static struct pinmux_config rtc_pin_mux[] = {
+	{"gpmc_a3.gpio1_19", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+static struct regulator_init_data am335x_dummy = {
+	.constraints.always_on  = true,
+};
+
+static struct regulator_consumer_supply am335x_vdd1_supply[] = {
+	REGULATOR_SUPPLY("vdd_mpu", NULL),
+};
+
+static struct regulator_init_data am335x_vdd1 = {
+	.constraints = {
+		.min_uV                 = 600000,
+		.max_uV                 = 1500000,
+		.valid_modes_mask       = REGULATOR_MODE_NORMAL,
+		.valid_ops_mask         = REGULATOR_CHANGE_VOLTAGE,
+		.always_on              = 1,
+	},
+	.num_consumer_supplies  = ARRAY_SIZE(am335x_vdd1_supply),
+	.consumer_supplies      = am335x_vdd1_supply,
+};
+
+struct tps65910_board am335x_tps65910_info = {
+	.tps65910_pmic_init_data[TPS65910_REG_VRTC]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VIO]      = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDD1]     = &am335x_vdd1,
+	.tps65910_pmic_init_data[TPS65910_REG_VDD2]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDD3]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDIG1]    = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDIG2]    = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VPLL]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDAC]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VAUX1]    = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VAUX2]    = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VAUX33]   = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VMMC]     = &am335x_dummy,
+};
+
+static void __init tps65910_rtc_irq_init(void)
+{
+
+	setup_pin_mux(rtc_pin_mux);
+
+	/* RTC in the TPS65910 PMIC */
+	if (omap_mux_init_signal("gpmc_a3.gpio1_19", AM33XX_PIN_INPUT_PULLUP))
+		printk(KERN_WARNING "Failed to mux PMIC IRQ\n");
+	else if (gpio_request_one(GPIO_RTC_PMIC_IRQ,
+			GPIOF_IN, "rtc-tps65910-irq") < 0)
+		printk(KERN_WARNING "failed to request GPIO%d\n",
+			GPIO_RTC_PMIC_IRQ);
+	else
+		am335x_tps65910_info.irq = gpio_to_irq(GPIO_RTC_PMIC_IRQ);
+}
+
 static struct i2c_board_info __initdata pcaaxs1_i2c0_boardinfo[] = {
-	{},
+	{
+		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
+		.platform_data  = &am335x_tps65910_info,
+	},
 };
 static struct i2c_board_info __initdata pcaaxs1_i2c1_boardinfo[] = {
 	{},
@@ -233,6 +296,7 @@ static void __init pcaaxs1_init(void)
 	am33xx_mux_init(NULL);
 	omap_serial_init();
 	clkout1_enable();
+	tps65910_rtc_irq_init();
 	pcaaxs1_i2c_init();
 	omap_sdrc_init(NULL, NULL);
 	/* Create an alias for icss clock */
