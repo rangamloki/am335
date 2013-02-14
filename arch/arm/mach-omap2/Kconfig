@@ -369,6 +369,11 @@ config MACH_PCM051
 	depends on SOC_OMAPAM33XX
 	default y
 
+config MACH_PCAAXS1
+	bool "AM335X based phyCARD AM335X"
+	depends on SOC_OMAPAM33XX
+	default y
+
 config OMAP3_EMU
 	bool "OMAP3 debugging peripherals"
 	depends on ARCH_OMAP3
