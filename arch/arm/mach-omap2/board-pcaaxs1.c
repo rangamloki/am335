@@ -20,6 +20,7 @@
  */
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/gpio.h>
 #include <linux/input.h>
@@ -100,6 +101,41 @@ static struct pinmux_config mmc0_pin_mux[] = {
 	{"gpmc_wpn.gpio0_31",	OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	{NULL, 0},
 };
+
+/* Module pin mux for i2c0 */
+static struct pinmux_config i2c0_pin_mux[] = {
+	{"i2c0_sda.i2c0_sda", OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
+				AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT},
+	{"i2c0_scl.i2c0_scl", OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
+				AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
+/* Module pin mux for i2c1 */
+static struct pinmux_config i2c1_pin_mux[] = {
+	{"uart1_rxd.i2c1_sda", OMAP_MUX_MODE3 | AM33XX_SLEWCTRL_SLOW |
+					AM33XX_PIN_INPUT_PULLUP},
+	{"uart1_txd.i2c1_scl", OMAP_MUX_MODE3 | AM33XX_SLEWCTRL_SLOW |
+					AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+static struct i2c_board_info __initdata pcaaxs1_i2c0_boardinfo[] = {
+	{},
+};
+static struct i2c_board_info __initdata pcaaxs1_i2c1_boardinfo[] = {
+	{},
+};
+
+static void __init pcaaxs1_i2c_init(void)
+{
+	setup_pin_mux(i2c0_pin_mux);
+	omap_register_i2c_bus(1, 100, pcaaxs1_i2c0_boardinfo,
+				ARRAY_SIZE(pcaaxs1_i2c0_boardinfo));
+	setup_pin_mux(i2c1_pin_mux);
+	omap_register_i2c_bus(2, 100, pcaaxs1_i2c1_boardinfo,
+				ARRAY_SIZE(pcaaxs1_i2c1_boardinfo));
+}
 
 /* Enable clkout1 */
 static struct pinmux_config clkout1_pin_mux[] = {
@@ -194,8 +230,10 @@ static void __init am33xx_cpuidle_init(void)
 static void __init pcaaxs1_init(void)
 {
 	am33xx_cpuidle_init();
+	am33xx_mux_init(NULL);
 	omap_serial_init();
 	clkout1_enable();
+	pcaaxs1_i2c_init();
 	omap_sdrc_init(NULL, NULL);
 	/* Create an alias for icss clock */
 	if (clk_add_alias("pruss", NULL, "pruss_uart_gclk", NULL))
