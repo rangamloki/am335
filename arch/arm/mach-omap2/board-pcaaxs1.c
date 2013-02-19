@@ -42,6 +42,7 @@
 #include <linux/reboot.h>
 #include <linux/opp.h>
 #include <linux/micrel_phy.h>
+#include <linux/leds-pca9532.h>
 
 /* LCD controller is similar to DA850 */
 #include <video/da8xx-fb.h>
@@ -456,6 +457,22 @@ static void __init tps65910_rtc_irq_init(void)
 		am335x_tps65910_info.irq = gpio_to_irq(GPIO_RTC_PMIC_IRQ);
 }
 
+static struct pca9532_platform_data pcaaxs1_pca9530 = {
+	.leds = {
+		{
+			.name = "lcd_brightnes",
+			.state = PCA9532_OFF,
+			.type = PCA9532_TYPE_LED,
+		}, {
+			.name = "led_yellow",
+			.state = PCA9532_OFF,
+			.type = PCA9532_TYPE_LED,
+		},
+	},
+	.psc = { 1, 1 },
+	.pwm = { 1, 1 },
+};
+
 static struct i2c_board_info __initdata pcaaxs1_i2c0_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
@@ -472,6 +489,11 @@ static struct i2c_board_info __initdata pcaaxs1_i2c1_boardinfo[] = {
 		I2C_BOARD_INFO("stmpe811", 0x44),
 		.irq = OMAP_GPIO_IRQ(AM335X_PHYCARD_STMPE811_GPIO_IRQ),
 		.platform_data = &pba_stm_pdata,
+	}, {
+		/* 2-Bit GPIO/PWM */
+		/* drivers/leds/leds-pca9530.c*/
+		I2C_BOARD_INFO("pca9530", 0x60),
+		.platform_data = &pcaaxs1_pca9530,
 	},
 };
 
