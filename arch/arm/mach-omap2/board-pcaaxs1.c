@@ -490,6 +490,8 @@ static struct i2c_board_info __initdata pcaaxs1_i2c1_boardinfo[] = {
 		/* drivers/leds/leds-pca9530.c*/
 		I2C_BOARD_INFO("pca9530", 0x60),
 		.platform_data = &pcaaxs1_pca9530,
+	}, {
+		I2C_BOARD_INFO("rtc8564", 0x51),
 	},
 };
 
