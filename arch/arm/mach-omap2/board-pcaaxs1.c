@@ -57,6 +57,7 @@
 #include <plat/emif.h>
 #include <plat/nand.h>
 #include <plat/lcdc.h>
+#include <plat/usb.h>
 
 #include "board-flash.h"
 #include "cpuidle33xx.h"
@@ -286,6 +287,22 @@ static struct pinmux_config tsc_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* pinmux for usb0 drvvbus */
+static struct pinmux_config usb0_pin_mux[] = {
+	{"usb0_drvvbus.usb0_drvvbus",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_ahclkr.gpio3_17",	OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
+					AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+/* pinmux for usb1 drvvbus */
+static struct pinmux_config usb1_pin_mux[] = {
+	{"usb1_drvvbus.usb1_drvvbus",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_aclkr.gpio3_18",	OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
+					AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
 static struct gpmc_timings am335x_nand_timings = {
 
 /* granularity of 10 is sufficient because of calculations */
@@ -478,6 +495,26 @@ static void lcdc_init(void)
 	return;
 }
 
+static struct omap_musb_board_data musb_board_data = {
+	.interface_type = MUSB_INTERFACE_ULPI,
+	/*
+	* mode[0:3] = USB0PORT's mode
+	* mode[4:7] = USB1PORT's mode
+	* PCM051 has USB0 in OTG mode and USB1 in host mode.
+	*/
+	.mode		= (MUSB_HOST << 4) | MUSB_OTG,
+	.power		= 500,
+	.instances	= 1,
+};
+
+static void usb_init(void)
+{
+	setup_pin_mux(usb0_pin_mux);
+	setup_pin_mux(usb1_pin_mux);
+	usb_musb_init(&musb_board_data);
+	return;
+}
+
 /* Enable clkout1 */
 static struct pinmux_config clkout1_pin_mux[] = {
 	{"xdma_event_intr0.clkout1", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
@@ -587,6 +624,7 @@ static void __init pcaaxs1_init(void)
 	mmc0_init();
 	lcdc_init();
 	pcaaxs1_nand_init();
+	usb_init();
 }
 
 static void __init pcaaxs1_map_io(void)
