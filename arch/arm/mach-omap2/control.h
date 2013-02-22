@@ -373,7 +373,8 @@
 #define AM33XX_RGMII_DISABLE_INT_DLY	(BIT(4) | BIT(5))
 #define AM33XX_RMII_SRC_CLK_PIN		BIT(6)
 #define AM33XX_MII_MODE_EN		0x0
-#define AM33XX_RMII_MODE_EN		((1 << 0) | (1 << 2))
+#define AM33XX_RMII_MODE_EN		((1 << 0) | (1 << 2) | \
+					AM33XX_RMII_SRC_CLK_PIN)
 #define AM33XX_RGMII_MODE_EN		((0x2 << 0) | (0x2 << 2) | \
 					(AM33XX_RGMII_DISABLE_INT_DLY))
 #define AM33XX_RMII1_RGMII2_MODE_EN	((1 << 0) | (0x2 << 2) | \

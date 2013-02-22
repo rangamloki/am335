@@ -21,6 +21,8 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/i2c.h>
+#include <linux/i2c/at24.h>
+#include <linux/phy.h>
 #include <linux/module.h>
 #include <linux/gpio.h>
 #include <linux/input.h>
@@ -28,6 +30,7 @@
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/export.h>
+#include <linux/ethtool.h>
 #include <linux/mfd/tps65910.h>
 #include <linux/mfd/tps65217.h>
 #include <linux/input/ti_tsc.h>
@@ -38,6 +41,7 @@
 #include <linux/pwm/pwm.h>
 #include <linux/reboot.h>
 #include <linux/opp.h>
+#include <linux/micrel_phy.h>
 
 /* LCD controller is similar to DA850 */
 #include <video/da8xx-fb.h>
@@ -71,6 +75,7 @@
 
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(1, 19)
 #define AM335X_PHYCARD_STMPE811_GPIO_IRQ  GPIO_TO_PIN(0, 7)
+#define EEPROM_I2C_ADDR         0x54
 
 #include "common.h"
 
@@ -303,6 +308,28 @@ static struct pinmux_config usb1_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for rmii1 */
+static struct pinmux_config rmii1_pin_mux[] = {
+	{"mii1_crs.rmii1_crs_dv", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxerr.rmii1_rxerr", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_txen.rmii1_txen", OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd1.rmii1_txd1", OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd0.rmii1_txd0", OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_rxd1.rmii1_rxd1", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxd0.rmii1_rxd0", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"rmii1_refclk.rmii1_refclk", OMAP_MUX_MODE0 |
+					AM33XX_PIN_INPUT_PULLDOWN},
+	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
+	{NULL, 0},
+};
+
+static struct at24_platform_data am335x_baseboard_eeprom_info = {
+	.byte_len       = 4096,
+	.page_size      = 32,
+	.flags          = AT24_FLAG_ADDR16,
+};
+
 static struct gpmc_timings am335x_nand_timings = {
 
 /* granularity of 10 is sufficient because of calculations */
@@ -433,6 +460,10 @@ static struct i2c_board_info __initdata pcaaxs1_i2c0_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
 		.platform_data  = &am335x_tps65910_info,
+	}, {
+		/* Baseboard board EEPROM */
+		I2C_BOARD_INFO("at24", EEPROM_I2C_ADDR),
+		.platform_data  = &am335x_baseboard_eeprom_info,
 	},
 };
 
@@ -512,6 +543,13 @@ static void usb_init(void)
 	setup_pin_mux(usb0_pin_mux);
 	setup_pin_mux(usb1_pin_mux);
 	usb_musb_init(&musb_board_data);
+	return;
+}
+
+static void rmii1_init(void)
+{
+	setup_pin_mux(rmii1_pin_mux);
+	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII, NULL, NULL);
 	return;
 }
 
@@ -625,6 +663,7 @@ static void __init pcaaxs1_init(void)
 	lcdc_init();
 	pcaaxs1_nand_init();
 	usb_init();
+	rmii1_init();
 }
 
 static void __init pcaaxs1_map_io(void)
