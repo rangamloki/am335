@@ -20,7 +20,7 @@
 #ifndef _BOARD_AM335X_H
 #define _BOARD_AM335X_H
 
-#define EEPROM_I2C_ADDR		0x54
+#define EEPROM_I2C_ADDR		0x52
 
 #define LOW_COST_EVM		0
 #define GEN_PURP_EVM		1

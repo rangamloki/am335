@@ -919,8 +919,8 @@ static void pcm051_setup(struct memory_accessor *mem_acc, void *context)
 }
 
 static struct at24_platform_data am335x_baseboard_eeprom_info = {
-	.byte_len       = (256*1024) / 8,
-	.page_size      = 64,
+	.byte_len       = (32*1024) / 8,
+	.page_size      = 32,
 	.flags          = AT24_FLAG_ADDR16,
 	.setup          = pcm051_setup,
 	.context        = (void *)NULL,
@@ -965,7 +965,7 @@ static struct tps65910_board am335x_tps65910_info = {
 static struct i2c_board_info __initdata pcm051_i2c_boardinfo[] = {
 	{
 		/* Baseboard board EEPROM */
-		I2C_BOARD_INFO("24c256", EEPROM_I2C_ADDR),
+		I2C_BOARD_INFO("24c32", EEPROM_I2C_ADDR),
 		.platform_data  = &am335x_baseboard_eeprom_info,
 	},
 	{
