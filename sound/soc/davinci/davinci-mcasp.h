@@ -26,6 +26,9 @@
 #define DAVINCI_MCASP_I2S_DAI	0
 #define DAVINCI_MCASP_DIT_DAI	1
 
+#define DAVINCI_MCASP_CLKXDIV   0
+#define DAVINCI_MCASP_HCLKXDIV  1
+
 enum {
 	DAVINCI_AUDIO_WORD_8 = 0,
 	DAVINCI_AUDIO_WORD_12,
@@ -44,6 +47,7 @@ struct davinci_audio_dev {
 	struct clk *clk;
 	unsigned int codec_fmt;
 	u8 clk_active;
+	int dai_fmt;
 
 	/* McASP specific data */
 	int	tdm_slots;

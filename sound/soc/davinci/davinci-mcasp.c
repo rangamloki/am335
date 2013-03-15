@@ -339,6 +339,11 @@ static inline void mcasp_set_ctl_reg(void __iomem *regs, u32 val)
 
 static void mcasp_start_rx(struct davinci_audio_dev *dev)
 {
+	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXHCLKRST);
+	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXCLKRST);
+
+	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXFSRST);
+
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, RXHCLKRST);
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, RXCLKRST);
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, RXSERCLR);
@@ -350,6 +355,8 @@ static void mcasp_start_rx(struct davinci_audio_dev *dev)
 
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, RXSMRST);
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, RXFSRST);
+
+	mcasp_set_reg(dev->base + DAVINCI_MCASP_RXBUF_REG, 0);
 }
 
 static void mcasp_start_tx(struct davinci_audio_dev *dev)
@@ -364,6 +371,7 @@ static void mcasp_start_tx(struct davinci_audio_dev *dev)
 
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXSMRST);
 	mcasp_set_ctl_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, TXFSRST);
+
 	mcasp_set_reg(dev->base + DAVINCI_MCASP_TXBUF_REG, 0);
 	for (i = 0; i < dev->num_serializer; i++) {
 		if (dev->serial_dir[i] == TX_MODE) {
@@ -419,7 +427,9 @@ static void davinci_mcasp_start(struct davinci_audio_dev *dev, int stream)
 static void mcasp_stop_rx(struct davinci_audio_dev *dev)
 {
 	mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLR_REG, 0);
+	mcasp_set_reg(dev->base + DAVINCI_MCASP_GBLCTLX_REG, 0);
 	mcasp_set_reg(dev->base + DAVINCI_MCASP_RXSTAT_REG, 0xFFFFFFFF);
+	mcasp_set_reg(dev->base + DAVINCI_MCASP_TXSTAT_REG, 0xFFFFFFFF);
 }
 
 static void mcasp_stop_tx(struct davinci_audio_dev *dev)
@@ -536,6 +546,8 @@ static int davinci_mcasp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 	default:
 		return -EINVAL;
 	}
+
+	dev->dai_fmt = fmt;
 
 	return 0;
 }
@@ -683,21 +695,33 @@ static void davinci_hw_common_param(struct davinci_audio_dev *dev, int stream)
 static void davinci_hw_param(struct davinci_audio_dev *dev, int stream)
 {
 	int i, active_slots;
-	u32 mask = 0;
+	u32 mask = 0, val;
 
 	active_slots = (dev->tdm_slots > 31) ? 32 : dev->tdm_slots;
 	for (i = 0; i < active_slots; i++)
 		mask |= (1 << i);
 
-	mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG, TX_ASYNC);
-
 	if (stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		/* bit stream is MSB first  with no delay */
-		/* DSP_B mode */
+		/* bit stream is MSB first with no delay */
+		/* DSP_B mode or I2S mode */
+		/* AHCLK from internal clk */
 		mcasp_set_bits(dev->base + DAVINCI_MCASP_AHCLKXCTL_REG,
 				AHCLKXE);
+		/* in which tdm slots is the transmitter active */
 		mcasp_set_reg(dev->base + DAVINCI_MCASP_TXTDM_REG, mask);
-		mcasp_set_bits(dev->base + DAVINCI_MCASP_TXFMT_REG, TXORD);
+
+		/* MSB first (and 1 bit delay for I2S) */
+		val = TXORD;
+		if ((dev->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) ==
+			SND_SOC_DAIFMT_I2S)
+			val |= FSXDLY(1);
+
+		mcasp_set_bits(dev->base + DAVINCI_MCASP_TXFMT_REG, val);
+
+		if (((dev->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) ==
+				SND_SOC_DAIFMT_I2S) &&
+			(dev->tdm_slots != 2))
+			dev_err(dev->dev, "I2S should have 2 tdm_slots\n");
 
 		if ((dev->tdm_slots >= 2) && (dev->tdm_slots <= 32))
 			mcasp_mod_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG,
@@ -706,23 +730,53 @@ static void davinci_hw_param(struct davinci_audio_dev *dev, int stream)
 			printk(KERN_ERR "playback tdm slot %d not supported\n",
 				dev->tdm_slots);
 
-		mcasp_clr_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG, FSXDUR);
+		/* frame sync width */
+		if ((dev->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) ==
+				SND_SOC_DAIFMT_I2S)
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG,
+					FSXDUR);
+		else
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG,
+					FSXDUR);
 	} else {
-		/* bit stream is MSB first with no delay */
-		/* DSP_B mode */
-		mcasp_set_bits(dev->base + DAVINCI_MCASP_RXFMT_REG, RXORD);
+		/* bit stream is MSB first (and 1 bit delay for I2S) */
+		/* DSP_B mode or I2S mode */
+		val = TXORD;
+		if ((dev->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) ==
+				SND_SOC_DAIFMT_I2S)
+			val |= FSXDLY(1);
+		mcasp_set_bits(dev->base + DAVINCI_MCASP_RXFMT_REG, val);
+
+		mcasp_set_bits(dev->base + DAVINCI_MCASP_AHCLKXCTL_REG,
+				AHCLKXE);
 		mcasp_set_bits(dev->base + DAVINCI_MCASP_AHCLKRCTL_REG,
 				AHCLKRE);
 		mcasp_set_reg(dev->base + DAVINCI_MCASP_RXTDM_REG, mask);
 
-		if ((dev->tdm_slots >= 2) && (dev->tdm_slots <= 32))
+		if ((dev->tdm_slots >= 2) && (dev->tdm_slots <= 32)) {
 			mcasp_mod_bits(dev->base + DAVINCI_MCASP_RXFMCTL_REG,
 					FSRMOD(dev->tdm_slots), FSRMOD(0x1FF));
+			mcasp_mod_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG,
+					FSRMOD(dev->tdm_slots), FSXMOD(0x1FF));
+			}
 		else
 			printk(KERN_ERR "capture tdm slot %d not supported\n",
 				dev->tdm_slots);
 
-		mcasp_clr_bits(dev->base + DAVINCI_MCASP_RXFMCTL_REG, FSRDUR);
+		/* frame sync width */
+		if ((dev->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) ==
+				SND_SOC_DAIFMT_I2S) {
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG,
+				FSXDUR);
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_RXFMCTL_REG,
+				FSRDUR);
+			}
+		else {
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_TXFMCTL_REG,
+				FSXDUR);
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_RXFMCTL_REG,
+				FSRDUR);
+			}
 	}
 }
 
@@ -861,11 +915,80 @@ static int davinci_mcasp_startup(struct snd_pcm_substream *substream,
 	return 0;
 }
 
+static int davinci_mcasp_set_dai_clkdiv(struct snd_soc_dai *dai, int div_id,
+		int div)
+{
+	struct davinci_audio_dev *dev = snd_soc_dai_get_drvdata(dai);
+
+	switch (div_id) {
+	case DAVINCI_MCASP_CLKXDIV:
+		div--;
+		if (div < 0) {
+			dev_err(dev->dev, "tried to set invalid clkdiv\n");
+			return -EINVAL;
+		} else if (div/3 > 31) {
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_AHCLKXCTL_REG,
+				AHCLKXDIV(0xfff));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_AHCLKXCTL_REG,
+				AHCLKXDIV(3));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG,
+				ACLKXDIV(0x1F));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG,
+				ACLKXDIV(div/4));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_AHCLKRCTL_REG,
+				AHCLKRDIV(0xfff));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_AHCLKRCTL_REG,
+				AHCLKRDIV(3));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKRCTL_REG,
+				ACLKRDIV(0x1F));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_ACLKRCTL_REG,
+				ACLKRDIV(div/4));
+		} else if (div > 31) {
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_AHCLKXCTL_REG,
+				AHCLKXDIV(0xfff));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_AHCLKXCTL_REG,
+				AHCLKXDIV(2));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG,
+				ACLKXDIV(0x1F));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG,
+				ACLKXDIV(div/3));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_AHCLKRCTL_REG,
+				AHCLKRDIV(0xfff));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_AHCLKRCTL_REG,
+				AHCLKRDIV(2));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKRCTL_REG,
+				ACLKRDIV(0x1F));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_ACLKRCTL_REG,
+				ACLKRDIV(div/3));
+		} else {
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_AHCLKXCTL_REG,
+				AHCLKXDIV(0xfff));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG,
+				ACLKXDIV(0x1F));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_ACLKXCTL_REG,
+				ACLKXDIV(div));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_AHCLKRCTL_REG,
+				AHCLKRDIV(0xfff));
+			mcasp_clr_bits(dev->base + DAVINCI_MCASP_ACLKRCTL_REG,
+				ACLKRDIV(0x1F));
+			mcasp_set_bits(dev->base + DAVINCI_MCASP_ACLKRCTL_REG,
+				ACLKRDIV(div));
+		}
+		break;
+	default:
+		dev_err(dev->dev, "tried to set unsupported clkdiv\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static struct snd_soc_dai_ops davinci_mcasp_dai_ops = {
 	.startup	= davinci_mcasp_startup,
 	.trigger	= davinci_mcasp_trigger,
 	.hw_params	= davinci_mcasp_hw_params,
 	.set_fmt	= davinci_mcasp_set_dai_fmt,
+	.set_clkdiv	= davinci_mcasp_set_dai_clkdiv,
 
 };
 
