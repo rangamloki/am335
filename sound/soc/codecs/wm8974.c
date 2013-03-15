@@ -517,12 +517,12 @@ static int wm8974_mute(struct snd_soc_dai *dai, int mute)
 static int wm8974_set_bias_level(struct snd_soc_codec *codec,
 	enum snd_soc_bias_level level)
 {
-	u16 power1 = snd_soc_read(codec, WM8974_POWER1) & ~0x3;
+	u16 power1 = snd_soc_read(codec, WM8974_POWER1) & ~0x13;
 
 	switch (level) {
 	case SND_SOC_BIAS_ON:
 	case SND_SOC_BIAS_PREPARE:
-		power1 |= 0x1;  /* VMID 50k */
+		power1 |= 0x11;  /* VMID 50k */
 		snd_soc_write(codec, WM8974_POWER1, power1);
 		break;
 
