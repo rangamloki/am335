@@ -190,6 +190,7 @@ static inline void __arch_decomp_setup(unsigned long arch_id)
 
 		/* AM33XX base boards using UART1 */
 		DEBUG_LL_AM33XX(1, am335xevm);
+		DEBUG_LL_AM33XX(1, pcm051);
 
 		/* AM33XX IA boards using UART4 */
 		DEBUG_LL_AM33XX(4, am335xiaevm);

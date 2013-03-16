@@ -632,7 +632,11 @@ static int __init am33xx_pm_init(void)
 
 
 	/* Get Board Id */
+#ifdef CONFIG_MACH_AM335XEVM
 	evm_id = am335x_evm_get_id();
+#else
+	evm_id = -EINVAL;
+#endif
 	if (evm_id != -EINVAL)
 		suspend_cfg_param_list[EVM_ID] = evm_id;
 	else

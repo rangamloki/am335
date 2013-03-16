@@ -148,7 +148,7 @@ static const struct clksel sys_clkin_sel[] = {
 /* sys_clk_in */
 static struct clk sys_clkin_ck = {
 	.name		= "sys_clkin_ck",
-	.parent		= &virt_24m_ck,
+	.parent		= &virt_25m_ck,
 	.init		= &omap2_init_clksel_parent,
 	.clksel_reg	= AM33XX_CTRL_REGADDR(0x40),	/* CONTROL_STATUS */
 	.clksel_mask	= (0x3 << 22),
@@ -644,6 +644,14 @@ static struct clk clk_24mhz = {
 	.recalc		= &omap_fixed_divisor_recalc,
 };
 
+static struct clk clk_25mhz = {
+	.name		= "clk_25mhz",
+	.parent		= &per_192mhz_clk,
+	.fixed_div	= 8,
+	.ops		= &clkops_null,
+	.recalc		= &omap_fixed_divisor_recalc,
+};
+
 static struct clk l4_cefuse_gclk = {
 	.name		= "l4_cefsue_gclk",
 	.parent		= &core_100mhz_ck,
@@ -709,9 +717,9 @@ static struct clk aes0_fck = {
  */
 static struct clk clkdiv32k_ick = {
 	.name		= "clkdiv32k_ick",
-	.clkdm_name	= "clk_24mhz_clkdm",
+	.clkdm_name	= "clk_25mhz_clkdm",
 	.rate		= 32768,
-	.parent		= &clk_24mhz,
+	.parent		= &clk_25mhz,
 	.enable_reg	= AM33XX_CM_PER_CLKDIV32K_CLKCTRL,
 	.enable_bit	= AM33XX_MODULEMODE_SWCTRL,
 	.ops		= &clkops_omap2_dflt,
@@ -719,7 +727,7 @@ static struct clk clkdiv32k_ick = {
 
 static struct clk clk_32khz_ck = {
 	.name		= "clk_32khz_ck",
-	.clkdm_name	= "clk_24mhz_clkdm",
+	.clkdm_name	= "clk_25mhz_clkdm",
 	.parent		= &clkdiv32k_ick,
 	.ops		= &clkops_null,
 	.recalc		= &followparent_recalc,
@@ -1914,6 +1922,25 @@ static const struct clksel_rate div8_rates[] = {
 	{ .div = 0 },
 };
 
+static const struct clksel clkout1_div[] = {
+	{ .parent = &sysclkout_pre_ck, .rates = div8_rates },
+	{ .parent = NULL },
+};
+
+static struct clk clkout1_ck = {
+	.name		= "clkout1_ck",
+	.parent		= &sysclkout_pre_ck,
+	.ops		= &clkops_omap2_dflt,
+	.clksel		= clkout1_div,
+	.clksel_reg	= AM33XX_CM_CLKOUT_CTRL,
+	.clksel_mask	= AM33XX_CLKOUT2DIV_MASK,
+	.enable_reg	= AM33XX_CM_CLKOUT_CTRL,
+	.enable_bit	= AM33XX_CLKOUT2EN_SHIFT,
+	.recalc		= &omap2_clksel_recalc,
+	.round_rate	= &omap2_clksel_round_rate,
+	.set_rate	= &omap2_clksel_set_rate,
+};
+
 static const struct clksel clkout2_div[] = {
 	{ .parent = &sysclkout_pre_ck, .rates = div8_rates },
 	{ .parent = NULL },
@@ -2167,6 +2194,7 @@ static struct omap_clk am33xx_clks[] = {
 	CLK(NULL,	"l4ls_gclk",		&l4ls_gclk,		CK_AM33XX),
 	CLK(NULL,	"debug_clka_gclk",	&debug_clka_gclk,	CK_AM33XX),
 	CLK(NULL,	"clk_24mhz",		&clk_24mhz,		CK_AM33XX),
+	CLK(NULL,	"clk_25mhz",		&clk_25mhz,	CK_AM33XX),
 	CLK(NULL,	"sysclk_div_ck",	&sysclk_div_ck,		CK_AM33XX),
 	CLK(NULL,	"cpsw_250mhz_clk",	&cpsw_250mhz_clk,	CK_AM33XX),
 	CLK(NULL,	"cpsw_125mhz_gclk",	&cpsw_125mhz_gclk,	CK_AM33XX),
@@ -2184,6 +2212,7 @@ static struct omap_clk am33xx_clks[] = {
 	CLK(NULL,	"gfx_fclk",		&gfx_fclk,		CK_AM33XX),
 	CLK(NULL,	"gfx_ick",		&gfx_ick,		CK_AM33XX),
 	CLK(NULL,	"sysclkout_pre_ck",	&sysclkout_pre_ck,	CK_AM33XX),
+	CLK(NULL,	"clkout1_ck",		&clkout1_ck,	CK_AM33XX),
 	CLK(NULL,	"clkout2_ck",		&clkout2_ck,		CK_AM33XX),
 	CLK(NULL,	"gpt0_ick",		&timer0_ick,		CK_AM33XX),
 	CLK(NULL,	"gpt1_ick",		&timer1_ick,		CK_AM33XX),

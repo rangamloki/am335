@@ -69,6 +69,8 @@
 #define ENABLE_PREFETCH		(0x1 << 7)
 #define DMA_MPU_MODE		2
 
+#define CYCLE2CYCLE_DIFF_CS_EN	0x40
+
 /* Structure to save gpmc cs context */
 struct gpmc_cs_config {
 	u32 config1;
@@ -331,6 +333,11 @@ int gpmc_cs_set_timings(int cs, const struct gpmc_timings *t)
 	GPMC_SET_ONE(GPMC_CS_CONFIG5, 16, 20, access);
 
 	GPMC_SET_ONE(GPMC_CS_CONFIG5, 24, 27, page_burst_access);
+
+	if (t->cs_delay_en != 0) {
+		gpmc_cs_write_reg(cs, GPMC_CS_CONFIG6, CYCLE2CYCLE_DIFF_CS_EN);
+		GPMC_SET_ONE(GPMC_CS_CONFIG6, 8, 11, cs_cycle_delay);
+	}
 
 	if (cpu_is_omap34xx()) {
 		GPMC_SET_ONE(GPMC_CS_CONFIG6, 16, 19, wr_data_mux_bus);

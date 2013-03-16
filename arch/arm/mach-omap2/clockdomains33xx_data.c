@@ -122,6 +122,16 @@ static struct clockdomain clk_24mhz_am33xx_clkdm = {
 	.flags		= (CLKDM_CAN_SWSUP | CLKDM_NO_AUTODEPS),
 };
 
+static struct clockdomain clk_25mhz_am33xx_clkdm = {
+	.name		= "clk_25mhz_clkdm",
+	.pwrdm		= { .name = "per_pwrdm" },
+	.cm_inst	= AM33XX_CM_PER_MOD,
+	.prcm_partition	= AM33XX_PRM_PARTITION,
+	.clkdm_offs	= AM33XX_CM_PER_CLK_24MHZ_CLKSTCTRL_OFFSET,
+	.clktrctrl_mask	= AM33XX_CLKTRCTRL_MASK,
+	.flags		= (CLKDM_CAN_SWSUP | CLKDM_NO_AUTODEPS),
+};
+
 static struct clockdomain l4_wkup_am33xx_clkdm = {
 	.name		= "l4_wkup_clkdm",
 	.pwrdm		= { .name = "wkup_pwrdm" },
@@ -213,6 +223,7 @@ static struct clockdomain *clockdomains_am33xx[] __initdata = {
 	&cpsw_125mhz_am33xx_clkdm,
 	&lcdc_am33xx_clkdm,
 	&clk_24mhz_am33xx_clkdm,
+	&clk_25mhz_am33xx_clkdm,
 	&l4_wkup_am33xx_clkdm,
 	&l3_aon_am33xx_clkdm,
 	&l4_wkup_aon_am33xx_clkdm,

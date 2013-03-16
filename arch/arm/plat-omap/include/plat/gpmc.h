@@ -128,7 +128,9 @@ struct gpmc_timings {
 	u16 rd_cycle;		/* Total read cycle time */
 	u16 wr_cycle;		/* Total write cycle time */
 
-	/* The following are only on OMAP3430 */
+	/* The following are only on OMAP3430 and AM335x */
+	u16 cs_cycle_delay;
+	u16 cs_delay_en;
 	u16 wr_access;		/* WRACCESSTIME */
 	u16 wr_data_mux_bus;	/* WRDATAONADMUXBUS */
 };

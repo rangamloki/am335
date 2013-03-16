@@ -47,7 +47,7 @@ static int omap2_nand_gpmc_retime(struct omap_nand_platform_data *gpmc_nand_data
 	/* Read */
 	t.adv_rd_off = gpmc_round_ns_to_ticks(
 				gpmc_nand_data->gpmc_t->adv_rd_off);
-	t.oe_on  = t.adv_on;
+	t.oe_on  = gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->oe_on);
 	t.access = gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->access);
 	t.oe_off = gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->oe_off);
 	t.cs_rd_off = gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->cs_rd_off);
@@ -56,7 +56,7 @@ static int omap2_nand_gpmc_retime(struct omap_nand_platform_data *gpmc_nand_data
 	/* Write */
 	t.adv_wr_off = gpmc_round_ns_to_ticks(
 				gpmc_nand_data->gpmc_t->adv_wr_off);
-	t.we_on  = t.oe_on;
+	t.we_on  = t.adv_on;
 	if (cpu_is_omap34xx()) {
 	    t.wr_data_mux_bus =	gpmc_round_ns_to_ticks(
 				gpmc_nand_data->gpmc_t->wr_data_mux_bus);
@@ -66,6 +66,11 @@ static int omap2_nand_gpmc_retime(struct omap_nand_platform_data *gpmc_nand_data
 	t.we_off = gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->we_off);
 	t.cs_wr_off = gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->cs_wr_off);
 	t.wr_cycle  = gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->wr_cycle);
+
+	/* Cycle to cycle delay */
+	t.cs_delay_en = gpmc_nand_data->gpmc_t->cs_delay_en;
+	t.cs_cycle_delay = \
+		gpmc_round_ns_to_ticks(gpmc_nand_data->gpmc_t->cs_cycle_delay);
 
 	/* Configure GPMC */
 	if (gpmc_nand_data->devsize == NAND_BUSWIDTH_16)
