@@ -30,7 +30,11 @@
 #include <linux/export.h>
 #include <linux/mfd/tps65910.h>
 #include <linux/mfd/tps65217.h>
+#include <linux/input/ti_tsc.h>
+#include <linux/platform_data/ti_adc.h>
+#include <linux/mfd/ti_tscadc.h>
 #include <linux/pwm_backlight.h>
+#include <linux/mfd/stmpe.h>
 #include <linux/pwm/pwm.h>
 #include <linux/reboot.h>
 #include <linux/opp.h>
@@ -65,6 +69,17 @@
 #include "common.h"
 
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(1, 19)
+#define AM335X_PHYCARD_STMPE811_GPIO_IRQ  GPIO_TO_PIN(0, 7)
+
+#include "common.h"
+
+/* TSc controller */
+#include <linux/lis3lv02d.h>
+
+static struct tsc_data am335x_touchscreen_data  = {
+	.wires  = 4,
+	.x_plate_resistance = 200,
+};
 
 static const struct display_panel disp_panel = {
 	VGA,
@@ -255,6 +270,22 @@ static struct pinmux_config lcdc_pin_mux[] = {
 	{NULL, 0},
 };
 
+static struct pinmux_config ts_irq_mux[] = {
+	{"ecap0_in_pwm0_out.gpio0_7",
+		OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
+	{NULL, 0},
+};
+
+static struct pinmux_config tsc_pin_mux[] = {
+	{"ain0.ain0",		OMAP_MUX_MODE0 | AM33XX_INPUT_EN},
+	{"ain1.ain1",		OMAP_MUX_MODE0 | AM33XX_INPUT_EN},
+	{"ain2.ain2",		OMAP_MUX_MODE0 | AM33XX_INPUT_EN},
+	{"ain3.ain3",		OMAP_MUX_MODE0 | AM33XX_INPUT_EN},
+	{"vrefp.vrefp",		OMAP_MUX_MODE0 | AM33XX_INPUT_EN},
+	{"vrefn.vrefn",		OMAP_MUX_MODE0 | AM33XX_INPUT_EN},
+	{NULL, 0},
+};
+
 static struct gpmc_timings am335x_nand_timings = {
 
 /* granularity of 10 is sufficient because of calculations */
@@ -280,6 +311,32 @@ static struct gpmc_timings am335x_nand_timings = {
 	.cs_delay_en = 1,
 	.wr_access = 30,
 	.wr_data_mux_bus = 0,
+};
+
+static struct stmpe_gpio_platform_data pba_gpio_stm_data = {
+	.gpio_base = -1,
+	.norequest_mask = STMPE_GPIO_NOREQ_811_TOUCH,
+};
+
+static struct stmpe_ts_platform_data pba_ts_stm_pdata = {
+	.sample_time = 4,
+	.mod_12b = 1,
+	.ref_sel = 0,
+	.adc_freq = 1,
+	.ave_ctrl = 3,
+	.touch_det_delay = 3,
+	.settling = 3,
+	.fraction_z = 7,
+	.i_drive = 0,
+};
+
+static struct stmpe_platform_data pba_stm_pdata = {
+	.blocks = STMPE_BLOCK_GPIO | STMPE_BLOCK_TOUCHSCREEN,
+	.irq_base = TWL4030_IRQ_END,
+	.irq_trigger = IRQF_TRIGGER_RISING,
+	.irq_invert_polarity = true,
+	.gpio = &pba_gpio_stm_data,
+	.ts = &pba_ts_stm_pdata,
 };
 
 static void pcaaxs1_nand_init(void)
@@ -361,8 +418,13 @@ static struct i2c_board_info __initdata pcaaxs1_i2c0_boardinfo[] = {
 		.platform_data  = &am335x_tps65910_info,
 	},
 };
+
 static struct i2c_board_info __initdata pcaaxs1_i2c1_boardinfo[] = {
-	{},
+	{
+		I2C_BOARD_INFO("stmpe811", 0x44),
+		.irq = OMAP_GPIO_IRQ(AM335X_PHYCARD_STMPE811_GPIO_IRQ),
+		.platform_data = &pba_stm_pdata,
+	},
 };
 
 static void __init pcaaxs1_i2c_init(void)
@@ -373,6 +435,14 @@ static void __init pcaaxs1_i2c_init(void)
 	setup_pin_mux(i2c1_pin_mux);
 	omap_register_i2c_bus(2, 100, pcaaxs1_i2c1_boardinfo,
 				ARRAY_SIZE(pcaaxs1_i2c1_boardinfo));
+}
+
+static void tsc_init(void)
+{
+	int err;
+
+	setup_pin_mux(ts_irq_mux);
+	setup_pin_mux(tsc_pin_mux);
 }
 
 static int __init conf_disp_pll(int rate)
@@ -505,6 +575,7 @@ static void __init pcaaxs1_init(void)
 	omap_serial_init();
 	clkout1_enable();
 	tps65910_rtc_irq_init();
+	tsc_init();
 	pcaaxs1_i2c_init();
 	omap_sdrc_init(NULL, NULL);
 	/* Create an alias for icss clock */
