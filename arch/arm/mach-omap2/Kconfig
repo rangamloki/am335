@@ -374,6 +374,11 @@ config MACH_PCAAXS1
 	depends on SOC_OMAPAM33XX
 	default y
 
+config MACH_PFLA03
+	bool "AM335X based phyFLEX AM335X"
+	depends on SOC_OMAPAM33XX
+	default y
+
 config OMAP3_EMU
 	bool "OMAP3 debugging peripherals"
 	depends on ARCH_OMAP3
