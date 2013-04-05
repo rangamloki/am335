@@ -404,15 +404,15 @@ static struct pinmux_config mmc0_pin_mux[] = {
 
 /* Module pin mux for uart2 */
 static struct pinmux_config uart2_pin_mux[] = {
-	{"mii1_txclk.rgmii1_tclk", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
-	{"mii1_rxclk.rgmii1_rclk", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
+	{"mii1_txclk.uart2_rxd_mux0", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
+	{"mii1_rxclk.uart2_txd_mux0", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
 	{NULL, 0},
 };
 
 /* Module pin mux for uart3 */
 static struct pinmux_config uart3_pin_mux[] = {
-	{"mii1_rxd3.rgmii1_rd3", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
-	{"mii1_rxd2.rgmii1_rd2", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
+	{"mii1_rxd3.uart3_rxd_mux0", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
+	{"mii1_rxd2.uart3_txd_mux0", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
 	{NULL, 0},
 };
 
