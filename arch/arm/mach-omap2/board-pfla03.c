@@ -43,10 +43,13 @@
 #include <plat/board.h>
 #include <plat/common.h>
 #include <plat/mmc.h>
+#include <plat/nand.h>
 
+#include "board-flash.h"
 #include "cpuidle33xx.h"
 #include "mux.h"
 #include "hsmmc.h"
+#include "devices.h"
 
 /* Convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
@@ -84,6 +87,26 @@ static struct pinmux_config mmc0_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Pin mux for nand flash module */
+static struct pinmux_config nand_pin_mux[] = {
+	{"gpmc_ad0.gpmc_ad0",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad1.gpmc_ad1",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad2.gpmc_ad2",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad3.gpmc_ad3",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad4.gpmc_ad4",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad5.gpmc_ad5",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad6.gpmc_ad6",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ad7.gpmc_ad7",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_wait0.gpmc_wait0", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_wpn.gpmc_wpn",     OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_csn0.gpmc_csn0",   OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{"gpmc_advn_ale.gpmc_advn_ale",  OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{"gpmc_oen_ren.gpmc_oen_ren",    OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{"gpmc_wen.gpmc_wen",     OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{"gpmc_ben0_cle.gpmc_ben0_cle",  OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
+	{NULL, 0},
+};
+
 /* Enable clkout1 */
 static struct pinmux_config clkout1_pin_mux[] = {
 	{"xdma_event_intr0.clkout1", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
@@ -99,6 +122,33 @@ static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
 		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
 	},
 	{}	/* Terminator */
+};
+
+static struct gpmc_timings am335x_nand_timings = {
+
+/* granularity of 10 is sufficient because of calculations */
+	.sync_clk = 0,
+
+	.cs_on = 0,
+	.cs_rd_off = 30,
+	.cs_wr_off = 30,
+
+	.adv_on = 0,
+	.adv_rd_off = 30,
+	.adv_wr_off = 30,
+
+	.oe_on = 10,
+	.we_off = 20,
+	.oe_off = 30,
+
+	.access = 30,
+	.rd_cycle = 30,
+	.wr_cycle = 30,
+
+	.cs_cycle_delay = 50,
+	.cs_delay_en = 1,
+	.wr_access = 30,
+	.wr_data_mux_bus = 0,
 };
 
 static struct resource am33xx_cpuidle_resources[] = {
@@ -159,6 +209,27 @@ static void __init am33xx_cpuidle_init(void)
 
 }
 
+static void pfla03_nand_init(void)
+{
+	struct omap_nand_platform_data *pdata;
+	struct gpmc_devices_info gpmc_device[2] = {
+		{ NULL, 0 },
+		{ NULL, 0 },
+	};
+
+	setup_pin_mux(nand_pin_mux);
+	pdata = omap_nand_init(NULL, 0, 0, 0, &am335x_nand_timings);
+	if (!pdata)
+		return;
+	pdata->ecc_opt = OMAP_ECC_BCH8_CODE_HW;
+	pdata->elm_used = true;
+	gpmc_device[0].pdata = pdata;
+	gpmc_device[0].flag = GPMC_DEVICE_NAND;
+
+	omap_init_gpmc(gpmc_device, sizeof(gpmc_device));
+	omap_init_elm();
+}
+
 static void __init pfla03_init(void)
 {
 	am33xx_cpuidle_init();
@@ -172,6 +243,7 @@ static void __init pfla03_init(void)
 	if (clk_add_alias("sgx_ck", NULL, "gfx_fclk", NULL))
 		pr_warn("failed to create an alias: gfx_fclk --> sgx_ck\n");
 	mmc0_init();
+	pfla03_nand_init();
 }
 
 static void __init pfla03_map_io(void)
