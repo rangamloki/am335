@@ -28,6 +28,7 @@
 #include <linux/err.h>
 #include <linux/export.h>
 #include <linux/mfd/tps65217.h>
+#include <linux/mfd/tps65910.h>
 #include <linux/reboot.h>
 #include <linux/opp.h>
 
@@ -159,6 +160,42 @@ static struct gpmc_timings am335x_nand_timings = {
 	.wr_data_mux_bus = 0,
 };
 
+static struct regulator_init_data am335x_dummy = {
+	.constraints.always_on  = true,
+};
+
+static struct regulator_consumer_supply am335x_vdd1_supply[] = {
+	REGULATOR_SUPPLY("vdd_mpu", NULL),
+};
+
+static struct regulator_init_data am335x_vdd1 = {
+	.constraints = {
+		.min_uV                 = 600000,
+		.max_uV                 = 1500000,
+		.valid_modes_mask       = REGULATOR_MODE_NORMAL,
+		.valid_ops_mask         = REGULATOR_CHANGE_VOLTAGE,
+		.always_on              = 1,
+	},
+	.num_consumer_supplies  = ARRAY_SIZE(am335x_vdd1_supply),
+	.consumer_supplies      = am335x_vdd1_supply,
+};
+
+struct tps65910_board am335x_tps65910_info = {
+	.tps65910_pmic_init_data[TPS65910_REG_VRTC]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VIO]      = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDD1]     = &am335x_vdd1,
+	.tps65910_pmic_init_data[TPS65910_REG_VDD2]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDD3]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDIG1]    = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDIG2]    = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VPLL]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VDAC]     = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VAUX1]    = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VAUX2]    = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VAUX33]   = &am335x_dummy,
+	.tps65910_pmic_init_data[TPS65910_REG_VMMC]     = &am335x_dummy,
+};
+
 static struct resource am33xx_cpuidle_resources[] = {
 	{
 		.start		= AM33XX_EMIF0_BASE,
@@ -239,7 +276,10 @@ static void pfla03_nand_init(void)
 }
 
 static struct i2c_board_info __initdata pfla03_i2c0_boardinfo[] = {
-	{},
+	{
+		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
+		.platform_data  = &am335x_tps65910_info,
+	},
 };
 
 static void __init pfla03_i2c_init(void)
