@@ -87,6 +87,14 @@ static struct pinmux_config mmc0_pin_mux[] = {
 	{NULL, 0},
 };
 
+static struct omap_board_mux board_mux[] __initdata = {
+	AM33XX_MUX(I2C0_SDA, OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
+			AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT),
+	AM33XX_MUX(I2C0_SCL, OMAP_MUX_MODE0 | AM33XX_SLEWCTRL_SLOW |
+			AM33XX_INPUT_EN | AM33XX_PIN_OUTPUT),
+	{ .reg_offset = OMAP_MUX_TERMINATOR },
+};
+
 /* Pin mux for nand flash module */
 static struct pinmux_config nand_pin_mux[] = {
 	{"gpmc_ad0.gpmc_ad0",     OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
@@ -230,6 +238,16 @@ static void pfla03_nand_init(void)
 	omap_init_elm();
 }
 
+static struct i2c_board_info __initdata pfla03_i2c0_boardinfo[] = {
+	{},
+};
+
+static void __init pfla03_i2c_init(void)
+{
+	omap_register_i2c_bus(1, 100, pfla03_i2c0_boardinfo,
+				ARRAY_SIZE(pfla03_i2c0_boardinfo));
+}
+
 static void __init pfla03_init(void)
 {
 	am33xx_cpuidle_init();
@@ -242,6 +260,8 @@ static void __init pfla03_init(void)
 	/* Create an alias for gfx/sgx clock */
 	if (clk_add_alias("sgx_ck", NULL, "gfx_fclk", NULL))
 		pr_warn("failed to create an alias: gfx_fclk --> sgx_ck\n");
+	am33xx_mux_init(board_mux);
+	pfla03_i2c_init();
 	mmc0_init();
 	pfla03_nand_init();
 }
