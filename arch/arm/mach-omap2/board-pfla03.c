@@ -447,6 +447,9 @@ static struct i2c_board_info __initdata pfla03_i2c0_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("max1037", 0x64),
 	},
+	{
+		I2C_BOARD_INFO("rtc8564", 0x51),
+	},
 };
 
 static void __init pfla03_i2c_init(void)
