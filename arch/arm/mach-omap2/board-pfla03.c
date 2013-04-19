@@ -412,6 +412,9 @@ static struct i2c_board_info __initdata pfla03_i2c0_boardinfo[] = {
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
 		.platform_data  = &am335x_tps65910_info,
 	},
+	{
+		I2C_BOARD_INFO("24c32", 0x52),
+	},
 };
 
 static void __init pfla03_i2c_init(void)
