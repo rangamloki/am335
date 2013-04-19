@@ -31,6 +31,7 @@
 #include <linux/mfd/tps65910.h>
 #include <linux/reboot.h>
 #include <linux/opp.h>
+#include <linux/leds-pca9532.h>
 
 #include <video/da8xx-fb.h>
 
@@ -407,6 +408,30 @@ static void pfla03_lcdc_init(void)
 	return;
 }
 
+static struct pca9532_platform_data pba_pca9532 = {
+	.leds = {
+		{
+			.name = "board:red:user_led0",
+			.state = PCA9532_OFF,
+			.type = PCA9532_TYPE_LED,
+		}, {
+			.name = "board:yellow:user_led1",
+			.state = PCA9532_OFF,
+			.type = PCA9532_TYPE_LED,
+		}, {
+			.name = "board:yellow:user_led2",
+			.state = PCA9532_OFF,
+			.type = PCA9532_TYPE_LED,
+		}, {
+			.name = "board:green:user_led3",
+			.state = PCA9532_OFF,
+			.type = PCA9532_TYPE_LED,
+		},
+	},
+	.psc = { 1, 1 },
+	.pwm = { 1, 1 },
+};
+
 static struct i2c_board_info __initdata pfla03_i2c0_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
@@ -414,6 +439,10 @@ static struct i2c_board_info __initdata pfla03_i2c0_boardinfo[] = {
 	},
 	{
 		I2C_BOARD_INFO("24c32", 0x52),
+	},
+	{
+		I2C_BOARD_INFO("pca9533", 0x62),
+		.platform_data = &pba_pca9532,
 	},
 };
 
