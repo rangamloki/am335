@@ -83,11 +83,6 @@
 /* TSc controller */
 #include <linux/lis3lv02d.h>
 
-static struct tsc_data am335x_touchscreen_data  = {
-	.wires  = 4,
-	.x_plate_resistance = 200,
-};
-
 static const struct display_panel disp_panel = {
 	VGA,
 	32,
@@ -509,8 +504,6 @@ static void __init pcaaxs1_i2c_init(void)
 
 static void tsc_init(void)
 {
-	int err;
-
 	setup_pin_mux(ts_irq_mux);
 	setup_pin_mux(tsc_pin_mux);
 }
