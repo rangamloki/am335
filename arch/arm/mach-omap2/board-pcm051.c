@@ -70,6 +70,7 @@
 #include "mux.h"
 #include "devices.h"
 #include "hsmmc.h"
+#include "am33xx_generic.h"
 
 #define GPIO_RTC_RV4162C7_IRQ  GPIO_TO_PIN(0, 20)
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(3, 4)
@@ -945,7 +946,7 @@ static struct regulator_init_data am335x_vdd1 = {
 	.consumer_supplies	= am335x_vdd1_supply,
 };
 
-struct tps65910_board am335x_tps65910_info = {
+static struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VRTC]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VIO]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VDD1]	= &am335x_vdd1,
@@ -1014,33 +1015,6 @@ static void __init clkout1_enable(void)
 	clk_enable(ck_32);
 
 	setup_pin_mux(clkout1_pin_mux);
-}
-
-void __iomem *am33xx_emif_base;
-
-void __iomem * __init am33xx_get_mem_ctlr(void)
-{
-
-	am33xx_emif_base = ioremap(AM33XX_EMIF0_BASE, SZ_32K);
-
-	if (!am33xx_emif_base)
-		pr_warning("%s: Unable to map DDR3 controller",	__func__);
-
-	return am33xx_emif_base;
-}
-
-void __iomem *am33xx_get_ram_base(void)
-{
-	return am33xx_emif_base;
-}
-
-void __iomem *am33xx_gpio0_base;
-
-void __iomem *am33xx_get_gpio0_base(void)
-{
-	am33xx_gpio0_base = ioremap(AM33XX_GPIO0_BASE, SZ_4K);
-
-	return am33xx_gpio0_base;
 }
 
 static struct pinmux_config rtc_pin_mux[] = {
