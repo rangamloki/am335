@@ -177,6 +177,26 @@ static struct mfd_tscadc_board tscadc = {
 	.adc_init = &am335x_adc_data,
 };
 
+static u8 am335x_iis_serializer_direction0[] = {
+	RX_MODE,	TX_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+};
+
+static struct snd_platform_data pcm051_snd_data0 = {
+	.tx_dma_offset  = 0x46000000,   /* McASP0 */
+	.rx_dma_offset  = 0x46000000,
+	.op_mode        = DAVINCI_MCASP_IIS_MODE,
+	.num_serializer = ARRAY_SIZE(am335x_iis_serializer_direction0),
+	.tdm_slots      = 2,
+	.serial_dir     = am335x_iis_serializer_direction0,
+	.asp_chan_q     = EVENTQ_2, /* davinci-mcsap driver does not use it */
+	.version        = MCASP_VERSION_3,
+	.txnumevt       = 1,
+	.rxnumevt       = 1,
+};
+
 static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
 	{
 		.mmc            = 1,
@@ -357,6 +377,16 @@ static struct pinmux_config rmii1_pin_mux[] = {
 					AM33XX_PIN_INPUT_PULLDOWN},
 	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
 	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
+	{NULL, 0},
+};
+
+/* Module pin mux for mcasp0 */
+static struct pinmux_config mcasp0_pin_mux[] = {
+	{"mcasp0_aclkx.mcasp0_aclkx", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_fsx.mcasp0_fsx", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_axr0.mcasp0_axr0", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mcasp0_axr1.mcasp0_axr1", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_ahclkx.mcasp0_ahclkx", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -976,6 +1006,9 @@ static struct i2c_board_info __initdata pcm051_i2c_boardinfo[] = {
 		I2C_BOARD_INFO("rv4162c7", 0x68),
 		/* irq is defined at pcm051_rtc_irq_init() */
 	},
+	{
+		I2C_BOARD_INFO("wm8974", 0x1a),
+	},
 };
 
 static struct omap_musb_board_data musb_board_data = {
@@ -1086,6 +1119,16 @@ static void __init am33xx_cpuidle_init(void)
 
 }
 
+/* Setup McASP 0 (Multichannel Audio Serial Port) */
+static void mcasp0_init(void)
+{
+	/* Configure McASP */
+	setup_pin_mux(mcasp0_pin_mux);
+	am335x_register_mcasp(&pcm051_snd_data0, 0);
+	return;
+}
+
+
 static void __init pcm051_init(void)
 {
 	am33xx_cpuidle_init();
@@ -1095,6 +1138,7 @@ static void __init pcm051_init(void)
 	omap_serial_init();
 	clkout1_enable();
 	pcm051_i2c_init();
+	mcasp0_init();
 	omap_sdrc_init(NULL, NULL);
 	usb_musb_init(&musb_board_data);
 	/* Create an alias for icss clock */

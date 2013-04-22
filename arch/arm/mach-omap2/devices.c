@@ -201,7 +201,9 @@ int __init am33xx_register_mfd_tscadc(struct mfd_tscadc_board *pdata)
 }
 
 #if defined(CONFIG_SND_AM335X_SOC_EVM) || \
-				defined(CONFIG_SND_AM335X_SOC_EVM_MODULE)
+	defined(CONFIG_SND_AM335X_SOC_EVM_MODULE) || \
+	defined(CONFIG_SND_PCM051_SOC_BOARD) || \
+	defined(CONFIG_SND_PCM051_SOC_BOARD_MODULE)
 int __init am335x_register_mcasp(struct snd_platform_data *pdata, int ctrl_nr)
 {
 	int l;
