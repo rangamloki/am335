@@ -52,6 +52,7 @@
 #include <plat/mmc.h>
 #include <plat/nand.h>
 #include <plat/lcdc.h>
+#include <plat/usb.h>
 
 #include "board-flash.h"
 #include "cpuidle33xx.h"
@@ -213,6 +214,22 @@ static struct pinmux_config clkout1_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* pinmux for usb0 drvvbus */
+static struct pinmux_config usb0_pin_mux[] = {
+	{"usb0_drvvbus.usb0_drvvbus",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"gpmc_csn1.gpio1_30",	OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
+					AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+/* pinmux for usb1 drvvbus */
+static struct pinmux_config usb1_pin_mux[] = {
+	{"usb1_drvvbus.usb1_drvvbus",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"gpmc_csn2.gpio1_31",	OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
+					AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
 static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
 	{
 		.mmc		= 1,
@@ -344,6 +361,19 @@ static struct da8xx_lcdc_selection_platform_data lcdc_selection_pdata = {
 	.entries_ptr = lcdc_pdata,
 	.entries_cnt = ARRAY_SIZE(lcdc_pdata)
 };
+
+static struct omap_musb_board_data pfla03_musb_board_data = {
+	.interface_type = MUSB_INTERFACE_ULPI,
+	/*
+	* mode[0:3] = USB0PORT's mode
+	* mode[4:7] = USB1PORT's mode
+	* PFLA03 has USB0 in Micro OTG mode and USB1 in host mode.
+	*/
+	.mode		= (MUSB_HOST << 4) | MUSB_OTG,
+	.power		= 500,
+	.instances	= 1,
+};
+
 /* AM33XX devices support DDR2 power down */
 static struct am33xx_cpuidle_config am33xx_cpuidle_pdata = {
 	.ddr2_pdown	= 1,
@@ -475,6 +505,11 @@ static void pfla03_eth_init(void)
 	return;
 }
 
+static void pfla03_usb_init(void)
+{
+	setup_pin_mux(usb0_pin_mux);
+	setup_pin_mux(usb1_pin_mux);
+	usb_musb_init(&pfla03_musb_board_data);
 	return;
 }
 
@@ -546,6 +581,7 @@ static void __init pfla03_init(void)
 	pfla03_nand_init();
 	pfla03_lcdc_init();
 	pfla03_eth_init();
+	pfla03_usb_init();
 }
 
 static void __init pfla03_map_io(void)
