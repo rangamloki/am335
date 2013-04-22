@@ -35,6 +35,8 @@
 #include <linux/phy.h>
 #include <linux/ethtool.h>
 #include <linux/micrel_phy.h>
+#include <linux/pwm/pwm.h>
+#include <linux/pwm_backlight.h>
 
 #include <video/da8xx-fb.h>
 
@@ -208,6 +210,13 @@ static struct pinmux_config rgmii1_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for eCAP2 */
+static struct pinmux_config ecap2_pin_mux[] = {
+	{"mcasp0_ahclkr.ecap2_in_pwm2_out",
+		OMAP_MUX_MODE4 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
 /* Enable clkout1 */
 static struct pinmux_config clkout1_pin_mux[] = {
 	{"xdma_event_intr0.clkout1", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
@@ -362,6 +371,34 @@ static struct da8xx_lcdc_selection_platform_data lcdc_selection_pdata = {
 	.entries_cnt = ARRAY_SIZE(lcdc_pdata)
 };
 
+/* LCD backlight platform Data */
+#define AM335X_BACKLIGHT_MAX_BRIGHTNESS        100
+#define AM335X_BACKLIGHT_DEFAULT_BRIGHTNESS    100
+#define AM335X_PWM_PERIOD_NANO_SECONDS         100000
+
+#define PWM_DEVICE_ID   "ecap.2"
+
+static struct platform_pwm_backlight_data am335x_backlight_data = {
+	.pwm_id         = PWM_DEVICE_ID,
+	.ch             = -1,
+	.max_brightness = AM335X_BACKLIGHT_MAX_BRIGHTNESS,
+	.dft_brightness = AM335X_BACKLIGHT_DEFAULT_BRIGHTNESS,
+	.pwm_period_ns  = AM335X_PWM_PERIOD_NANO_SECONDS,
+};
+
+/* Setup pwm-backlight */
+static struct platform_device am335x_backlight = {
+	.name           = "pwm-backlight",
+	.id             = -1,
+	.dev            = {
+		.platform_data  = &am335x_backlight_data,
+	}
+};
+
+static struct pwmss_platform_data pwm_pdata = {
+	.version = PWM_VERSION_1
+};
+
 static struct omap_musb_board_data pfla03_musb_board_data = {
 	.interface_type = MUSB_INTERFACE_ULPI,
 	/*
@@ -504,6 +541,18 @@ static void pfla03_eth_init(void)
 	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII2_RGMII1, "0:02", "0:00");
 	return;
 }
+
+static int __init ecap2_init(void)
+{
+	int status = 0;
+
+	setup_pin_mux(ecap2_pin_mux);
+	am33xx_register_ecap(2, &pwm_pdata);
+	platform_device_register(&am335x_backlight);
+
+	return status;
+}
+late_initcall(ecap2_init);
 
 static void pfla03_usb_init(void)
 {
