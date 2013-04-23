@@ -918,6 +918,8 @@ void am33xx_setup_pinmux_on_suspend(void)
 	}
 }
 
+#ifdef CONFIG_SUSPEND
+
 static u32 am33xx_lp_padconf_complete[MAX_IO_PADCONF];
 
 void am335x_save_padconf(void)
@@ -954,6 +956,8 @@ void am335x_restore_padconf(void)
 			writel(temp->val, AM33XX_CTRL_REGADDR(temp->offset));
 	}
 }
+
+#endif
 
 /*
  * Dummy GPIO interrupt Handler
