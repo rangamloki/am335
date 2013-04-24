@@ -37,6 +37,8 @@
 #include <linux/micrel_phy.h>
 #include <linux/pwm/pwm.h>
 #include <linux/pwm_backlight.h>
+#include <linux/spi/spi.h>
+#include <linux/spi/flash.h>
 
 #include <video/da8xx-fb.h>
 
@@ -214,6 +216,19 @@ static struct pinmux_config rgmii1_pin_mux[] = {
 static struct pinmux_config ecap2_pin_mux[] = {
 	{"mcasp0_ahclkr.ecap2_in_pwm2_out",
 		OMAP_MUX_MODE4 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
+/* Module pin mux for SPI fash */
+static struct pinmux_config spi0_pin_mux[] = {
+	{"spi0_sclk.spi0_sclk", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL
+							| AM33XX_INPUT_EN},
+	{"spi0_d0.spi0_d0", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL | AM33XX_PULL_UP
+							| AM33XX_INPUT_EN},
+	{"spi0_d1.spi0_d1", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL
+							| AM33XX_INPUT_EN},
+	{"spi0_cs0.spi0_cs0", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL | AM33XX_PULL_UP
+							| AM33XX_INPUT_EN},
 	{NULL, 0},
 };
 
@@ -411,6 +426,26 @@ static struct omap_musb_board_data pfla03_musb_board_data = {
 	.instances	= 1,
 };
 
+static const struct flash_platform_data am335x_spi_flash = {
+	.type      = "s25fl064k",
+	.name      = "spi_flash",
+};
+
+/*
+ * SPI Flash works at 80Mhz however SPI Controller works at 48MHz.
+ * So setup Max speed to be less than that of Controller speed
+ */
+static struct spi_board_info am335x_spi0_slave_info[] = {
+	{
+		.modalias      = "m25p80",
+		.platform_data = &am335x_spi_flash,
+		.irq           = -1,
+		.max_speed_hz  = 24000000,
+		.bus_num       = 1,
+		.chip_select   = 0,
+	},
+};
+
 /* AM33XX devices support DDR2 power down */
 static struct am33xx_cpuidle_config am33xx_cpuidle_pdata = {
 	.ddr2_pdown	= 1,
@@ -562,6 +597,15 @@ static void pfla03_usb_init(void)
 	return;
 }
 
+/* setup spi0 */
+static void pfla03_spi0_init(void)
+{
+	setup_pin_mux(spi0_pin_mux);
+	spi_register_board_info(am335x_spi0_slave_info,
+			ARRAY_SIZE(am335x_spi0_slave_info));
+	return;
+}
+
 static struct pca9532_platform_data pba_pca9532 = {
 	.leds = {
 		{
@@ -631,6 +675,7 @@ static void __init pfla03_init(void)
 	pfla03_lcdc_init();
 	pfla03_eth_init();
 	pfla03_usb_init();
+	pfla03_spi0_init();
 }
 
 static void __init pfla03_map_io(void)
