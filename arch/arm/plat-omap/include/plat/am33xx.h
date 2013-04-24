@@ -90,6 +90,7 @@ enum am33xx_cpsw_mac_mode {
 	AM33XX_CPSW_MODE_RMII,
 	AM33XX_CPSW_MODE_RGMII,
 	AM33XX_CPSW_MODE_RMII1_RGMII2,
+	AM33XX_CPSW_MODE_RMII2_RGMII1,
 };
 int am33xx_cpsw_init(enum am33xx_cpsw_mac_mode mode, unsigned char *phy_id0,
 		     unsigned char *phy_id1);

@@ -32,6 +32,9 @@
 #include <linux/reboot.h>
 #include <linux/opp.h>
 #include <linux/leds-pca9532.h>
+#include <linux/phy.h>
+#include <linux/ethtool.h>
+#include <linux/micrel_phy.h>
 
 #include <video/da8xx-fb.h>
 
@@ -166,6 +169,41 @@ static struct pinmux_config lcdc_pin_mux[] = {
 	{"lcd_pclk.lcd_pclk",           OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"lcd_ac_bias_en.lcd_ac_bias_en", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"mcasp0_ahclkx.gpio3_21",	OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
+/* Module pin mux for rmii2 */
+static struct pinmux_config rmii2_pin_mux[] = {
+	{"gpmc_a0.rmii2_txen", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
+	{"gpmc_wpn.rmii2_rxerr", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a4.rmii2_txd1", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a5.rmii2_txd0", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
+	{"mii1_col.rmii2_refclk", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a10.rmii2_rxd1", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a11.rmii2_rxd0", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
+	{"gpmc_wait0.rmii2_crs_dv", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a6.gpio1_22", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
+/* Module pin mux for rgmii1 */
+static struct pinmux_config rgmii1_pin_mux[] = {
+	{"mii1_txen.rgmii1_tctl", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"mii1_rxdv.rgmii1_rctl", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_txd3.rgmii1_td3", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd2.rgmii1_td2", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd1.rgmii1_td1", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd0.rgmii1_td0", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"mii1_txclk.rgmii1_tclk", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"mii1_rxclk.rgmii1_rclk", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxd3.rgmii1_rd3", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxd2.rgmii1_rd2", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxd1.rgmii1_rd1", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxd0.rgmii1_rd0", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
 	{NULL, 0},
 };
 
@@ -421,6 +459,25 @@ static void pfla03_lcdc_init(void)
 	return;
 }
 
+static void pfla03_eth_init(void)
+{
+	int status;
+
+	status = gpio_request(GPIO_TO_PIN(1, 22), "gpio1_22");
+	if (status < 0)
+		pr_warn("Failed to request gpio for rmii2_crs_dv\n");
+
+	gpio_direction_output(GPIO_TO_PIN(1, 22), 1);
+
+	setup_pin_mux(rgmii1_pin_mux);
+	setup_pin_mux(rmii2_pin_mux);
+	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII2_RGMII1, "0:02", "0:00");
+	return;
+}
+
+	return;
+}
+
 static struct pca9532_platform_data pba_pca9532 = {
 	.leds = {
 		{
@@ -488,6 +545,7 @@ static void __init pfla03_init(void)
 	mmc0_init();
 	pfla03_nand_init();
 	pfla03_lcdc_init();
+	pfla03_eth_init();
 }
 
 static void __init pfla03_map_io(void)
