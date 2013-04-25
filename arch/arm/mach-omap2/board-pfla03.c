@@ -232,6 +232,15 @@ static struct pinmux_config spi0_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* UART1 pin mux */
+static struct pinmux_config uart1_pin_mux[] = {
+	{"uart1_txd.uart1_txd", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL},
+	{"uart1_rxd.uart1_rxd", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"uart1_ctsn.uart1_ctsn", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"uart1_rtsn.uart1_rtsn", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT},
+	{NULL, 0},
+};
+
 /* Enable clkout1 */
 static struct pinmux_config clkout1_pin_mux[] = {
 	{"xdma_event_intr0.clkout1", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
@@ -606,6 +615,13 @@ static void pfla03_spi0_init(void)
 	return;
 }
 
+/* UART1 init */
+static void pfla03_uart1_init(void)
+{
+	setup_pin_mux(uart1_pin_mux);
+	return;
+}
+
 static struct pca9532_platform_data pba_pca9532 = {
 	.leds = {
 		{
@@ -659,6 +675,7 @@ static void __init pfla03_i2c_init(void)
 static void __init pfla03_init(void)
 {
 	am33xx_cpuidle_init();
+	pfla03_uart1_init();
 	omap_serial_init();
 	clkout1_enable();
 	omap_sdrc_init(NULL, NULL);
