@@ -246,6 +246,7 @@ struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VAUX2]    = &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VAUX33]   = &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VMMC]     = &am335x_dummy,
+	.irq						= -EINVAL,
 };
 
 static struct resource am33xx_cpuidle_resources[] = {
