@@ -165,6 +165,7 @@ static struct pinmux_config lcdc_pin_mux[] = {
 	{"lcd_hsync.lcd_hsync",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"lcd_pclk.lcd_pclk",           OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"lcd_ac_bias_en.lcd_ac_bias_en", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_ahclkx.gpio3_21",	OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -393,10 +394,21 @@ out:
 	return ret;
 }
 
+#define GPIO_DISPLAY_EN		117
+
 static void pfla03_lcdc_init(void)
 {
+	int status;
 
 	setup_pin_mux(lcdc_pin_mux);
+
+	status = gpio_request(GPIO_DISPLAY_EN, "lcd_en\n");
+	if (status < 0) {
+		pr_err("Failed to request gpio for display enable");
+		return;
+	}
+
+	gpio_direction_output(GPIO_DISPLAY_EN, 0);
 
 	if (conf_disp_pll(300000000)) {
 		pr_info("Failed configure display PLL, not attempting to"
