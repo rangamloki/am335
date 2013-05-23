@@ -241,12 +241,6 @@ static struct pinmux_config uart1_pin_mux[] = {
 	{NULL, 0},
 };
 
-/* Enable clkout1 */
-static struct pinmux_config clkout1_pin_mux[] = {
-	{"xdma_event_intr0.clkout1", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
-	{NULL, 0},
-};
-
 /* pinmux for usb0 drvvbus */
 static struct pinmux_config usb0_pin_mux[] = {
 	{"usb0_drvvbus.usb0_drvvbus",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
@@ -469,21 +463,6 @@ static struct platform_device am33xx_cpuidle_device = {
 	},
 };
 
-static void __init clkout1_enable(void)
-{
-	struct clk *ck_32;
-
-	ck_32 = clk_get(NULL, "clkout1_ck");
-	if (IS_ERR(ck_32)) {
-		pr_err("Cannot clk_get ck_32\n");
-		return;
-	}
-
-	clk_enable(ck_32);
-
-	setup_pin_mux(clkout1_pin_mux);
-}
-
 static void mmc0_init(void)
 {
 	setup_pin_mux(mmc0_pin_mux);
@@ -677,7 +656,6 @@ static void __init pfla03_init(void)
 	am33xx_cpuidle_init();
 	pfla03_uart1_init();
 	omap_serial_init();
-	clkout1_enable();
 	omap_sdrc_init(NULL, NULL);
 	/* Create an alias for icss clock */
 	if (clk_add_alias("pruss", NULL, "pruss_uart_gclk", NULL))
