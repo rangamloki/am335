@@ -293,6 +293,7 @@ static struct pinmux_config usb0_pin_mux[] = {
 	{"usb0_drvvbus.usb0_drvvbus",	OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"mcasp0_ahclkr.gpio3_17",	OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
 					AM33XX_PIN_INPUT_PULLUP},
+	{"gpmc_ben1.gpio1_28",		OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -555,8 +556,17 @@ static struct omap_musb_board_data musb_board_data = {
 
 static void usb_init(void)
 {
+	int ret;
+
 	setup_pin_mux(usb0_pin_mux);
 	setup_pin_mux(usb1_pin_mux);
+
+	ret = gpio_request(GPIO_TO_PIN(1, 28), "USB_OTG_SELFPOWERED");
+	if (ret < 0)
+		pr_warn("Failed to request gpio for USB_OTG_SELFPOWERED\n");
+
+	gpio_direction_output(GPIO_TO_PIN(1, 28), 0);
+
 	usb_musb_init(&musb_board_data);
 	return;
 }
