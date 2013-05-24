@@ -1144,6 +1144,7 @@ static void __init pcm051_init(void)
 	omap_serial_init();
 	clkout1_enable();
 	pcm051_i2c_init();
+	am335x_internal_rtc_init();
 	mcasp0_init();
 	omap_sdrc_init(NULL, NULL);
 	usb_musb_init(&musb_board_data);
