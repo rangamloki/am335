@@ -8,4 +8,6 @@ extern void __iomem *am33xx_get_ram_base(void);
 extern void __iomem *am33xx_gpio0_base;
 extern void __iomem *am33xx_get_gpio0_base(void);
 
+void am335x_internal_rtc_init(void);
+
 #endif
