@@ -292,7 +292,7 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.invert_pxl_clk = 0,
 	},
 	/* Prime-View PM070WL4 */
-	[3] = {
+	[4] = {
 		.name = "PV_PM070WL4",
 		.width = 800,
 		.height = 480,
@@ -306,7 +306,7 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.invert_pxl_clk = 1,
 	},
 	/* Prime-View PD050VL1 */
-	[4] = {
+	[5] = {
 		.name = "PV_PD050VL1",
 		.width = 640,
 		.height = 480,
@@ -320,7 +320,7 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.invert_pxl_clk = 1,
 	},
 	/* Prime-View PD035VL1 */
-	[5] = {
+	[6] = {
 		.name = "PV_PD035VL1",
 		.width = 640,
 		.height = 480,
@@ -334,7 +334,7 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.invert_pxl_clk = 1,
 	},
 	/* Prime-View PD104SLF */
-	[6] = {
+	[7] = {
 		.name = "PV_PD104SLF",
 		.width = 800,
 		.height = 600,
