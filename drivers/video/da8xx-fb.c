@@ -291,8 +291,22 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 9000000,
 		.invert_pxl_clk = 0,
 	},
-	/* Prime-View PM070WL4 */
+	/* Emerging ETM0700G0DH6 */
 	[4] = {
+		.name = "ETM0700G0DH6",
+		.width = 800,
+		.height = 480,
+		.hfp = 40,
+		.hbp = 216,
+		.hsw = 128,
+		.vfp = 10,
+		.vbp = 35,
+		.vsw = 2,
+		.pxl_clk = 40000000,
+		.invert_pxl_clk = 1,
+	},
+	/* Prime-View PM070WL4 */
+	[5] = {
 		.name = "PV_PM070WL4",
 		.width = 800,
 		.height = 480,
@@ -306,7 +320,7 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.invert_pxl_clk = 1,
 	},
 	/* Prime-View PD050VL1 */
-	[5] = {
+	[6] = {
 		.name = "PV_PD050VL1",
 		.width = 640,
 		.height = 480,
@@ -320,7 +334,7 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.invert_pxl_clk = 1,
 	},
 	/* Prime-View PD035VL1 */
-	[6] = {
+	[7] = {
 		.name = "PV_PD035VL1",
 		.width = 640,
 		.height = 480,
@@ -334,7 +348,7 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.invert_pxl_clk = 1,
 	},
 	/* Prime-View PD104SLF */
-	[7] = {
+	[8] = {
 		.name = "PV_PD104SLF",
 		.width = 800,
 		.height = 600,
