@@ -33,6 +33,7 @@
 #include <linux/ethtool.h>
 #include <linux/mfd/tps65910.h>
 #include <linux/mfd/tps65217.h>
+#include <linux/input/edt-ft5x06.h>
 #include <linux/input/ti_tsc.h>
 #include <linux/platform_data/ti_adc.h>
 #include <linux/mfd/ti_tscadc.h>
@@ -76,6 +77,7 @@
 
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(1, 19)
 #define AM335X_PHYCARD_STMPE811_GPIO_IRQ  GPIO_TO_PIN(0, 7)
+#define AM335X_PHYCARD_EDT_FT5X06_GPIO_IRQ GPIO_TO_PIN(0, 12)
 #define EEPROM_I2C_ADDR         0x54
 
 #include "am33xx_generic.h"
@@ -279,6 +281,7 @@ static struct pinmux_config lcdc_pin_mux[] = {
 static struct pinmux_config ts_irq_mux[] = {
 	{"ecap0_in_pwm0_out.gpio0_7",
 		OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
+	{"uart1_ctsn.gpio0_12", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
 	{NULL, 0},
 };
 
@@ -384,6 +387,14 @@ static struct stmpe_platform_data pba_stm_pdata = {
 	.ts = &pba_ts_stm_pdata,
 };
 
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+	defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+static struct edt_ft5x06_platform_data pba_ft5x06_data = {
+	.reset_pin	= -1,		/* static high */
+	.irq_pin	= AM335X_PHYCARD_EDT_FT5X06_GPIO_IRQ,
+};
+#endif
+
 static void pcaaxs1_nand_init(void)
 {
 	struct omap_nand_platform_data *pdata;
@@ -485,6 +496,14 @@ static struct i2c_board_info __initdata pcaaxs1_i2c0_boardinfo[] = {
 };
 
 static struct i2c_board_info __initdata pcaaxs1_i2c1_boardinfo[] = {
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+	defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+	{
+		I2C_BOARD_INFO("edt-ft5x06", 0x38),
+		.irq = OMAP_GPIO_IRQ(AM335X_PHYCARD_EDT_FT5X06_GPIO_IRQ),
+		.platform_data = &pba_ft5x06_data,
+	},
+#endif
 	{
 		I2C_BOARD_INFO("stmpe811", 0x44),
 		.irq = OMAP_GPIO_IRQ(AM335X_PHYCARD_STMPE811_GPIO_IRQ),
