@@ -114,23 +114,33 @@ static struct lcd_ctrl_config lcd_cfg = {
 	.raster_order           = 0,
 };
 
+static void pcaaxs1_display_power(int power)
+{
+	/* Enable/Disable LVDS transceiver */
+	gpio_direction_output(GPIO_TO_PIN(1, 17), power);
+}
+
 static struct da8xx_lcdc_platform_data lcdc_pdata[] = {
 	{
 		.manu_name		= "Emerging",
 		.controller_data	= &lcd_cfg,
 		.type			= "ETM0700G0DH6",
+		.panel_power_ctrl	= pcaaxs1_display_power,
 	}, {
 		.manu_name              = "PrimeView",
 		.controller_data        = &lcd_cfg,
 		.type                   = "PV_PM070WL4",
+		.panel_power_ctrl	= pcaaxs1_display_power,
 	}, {
 		.manu_name              = "PrimeView",
 		.controller_data        = &lcd_cfg,
 		.type                   = "PV_PD050VL1",
+		.panel_power_ctrl	= pcaaxs1_display_power,
 	}, {
 		.manu_name              = "PrimeView",
 		.controller_data        = &lcd_cfg,
 		.type                   = "PV_PD104SLF",
+		.panel_power_ctrl	= pcaaxs1_display_power,
 	},
 };
 
@@ -275,6 +285,7 @@ static struct pinmux_config lcdc_pin_mux[] = {
 	{"lcd_hsync.lcd_hsync",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"lcd_pclk.lcd_pclk",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"lcd_ac_bias_en.lcd_ac_bias_en", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a1.gpio1_17",		OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -553,6 +564,7 @@ out:
 
 static void lcdc_init(void)
 {
+	int ret;
 
 	setup_pin_mux(lcdc_pin_mux);
 
@@ -564,6 +576,11 @@ static void lcdc_init(void)
 
 	if (am33xx_register_lcdc(&lcdc_selection_pdata))
 		pr_info("Failed to register LCDC device\n");
+
+	ret = gpio_request(GPIO_TO_PIN(1, 17), "DISPLAY_PWRDN");
+	if (ret < 0)
+		pr_warn("Failed to request gpio for DISPLAY_PWRDN\n");
+
 	return;
 }
 
