@@ -37,6 +37,7 @@
 #include <linux/mfd/tps65217.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input/ti_tsc.h>
+#include <linux/input/edt-ft5x06.h>
 #include <linux/platform_data/ti_adc.h>
 #include <linux/mfd/ti_tscadc.h>
 #include <linux/reboot.h>
@@ -72,6 +73,7 @@
 #include "hsmmc.h"
 #include "am33xx_generic.h"
 
+#define AM335X_PHYCORE_EDT_FT5X06_GPIO_IRQ GPIO_TO_PIN(0, 20)
 #define GPIO_RTC_RV4162C7_IRQ  GPIO_TO_PIN(0, 20)
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(3, 4)
 
@@ -133,6 +135,14 @@ static struct lcd_ctrl_config lcd_cfg = {
 };
 
 static struct da8xx_lcdc_platform_data lcdc_pdata[] = {
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+	defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+	{
+		.manu_name		= "Emerging",
+		.controller_data	= &lcd_cfg,
+		.type			= "ETM0700G0DH6",
+	},
+#endif
 	{
 		.manu_name		= "PrimeView",
 		.controller_data	= &lcd_cfg,
@@ -966,7 +976,23 @@ static struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VMMC]	= &am335x_dummy,
 };
 
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+		defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+static struct edt_ft5x06_platform_data pba_ft5x06_data = {
+	.reset_pin      = -1,		/* static high */
+	.irq_pin        = AM335X_PHYCORE_EDT_FT5X06_GPIO_IRQ,
+};
+#endif
+
 static struct i2c_board_info __initdata pcm051_i2c_boardinfo[] = {
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+		defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+	{
+		I2C_BOARD_INFO("edt-ft5x06", 0x38),
+		.irq = OMAP_GPIO_IRQ(AM335X_PHYCORE_EDT_FT5X06_GPIO_IRQ),
+		.platform_data = &pba_ft5x06_data,
+	},
+#endif
 	{
 		/* Baseboard board EEPROM */
 		I2C_BOARD_INFO("24c32", EEPROM_I2C_ADDR),
@@ -1026,6 +1052,7 @@ static void __init clkout1_enable(void)
 
 static struct pinmux_config rtc_pin_mux[] = {
 	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	/* gpio0_20 is shared by lcd touch irq and rtc irq */
 	{"mii1_rxdv.gpio3_4", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	{NULL, 0},
 };
@@ -1035,6 +1062,12 @@ static void __init pcm051_rtc_irq_init(void)
 	int r;
 
 	setup_pin_mux(rtc_pin_mux);
+
+/* for LCD 018 the irq line is used by the multi touch  */
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+		defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+	pcm051_i2c_boardinfo[2].irq = -EINVAL;
+#else
 
 	/* Option 1: RV-4162 */
 	r = gpio_request_one(GPIO_RTC_RV4162C7_IRQ,
@@ -1046,7 +1079,7 @@ static void __init pcm051_rtc_irq_init(void)
 	}
 
 	pcm051_i2c_boardinfo[2].irq = gpio_to_irq(GPIO_RTC_RV4162C7_IRQ);
-
+#endif
 	/* Option 2: RTC in the TPS65910 PMIC */
 	if (omap_mux_init_signal("mii1_rxdv.gpio3_4", AM33XX_PIN_INPUT_PULLUP))
 		printk(KERN_WARNING "Failed to mux PMIC IRQ\n");
