@@ -195,7 +195,7 @@ static int tps65910_i2c_probe(struct i2c_client *i2c,
 	rtc_resources[0].start = TWL4030_IRQ_BASE + TPS65910_IRQ_RTC_ALARM;
 
 	/* Use external oscillator */
-	tps65910_set_bits(tps65910, TPS65910_DEVCTRL, 0x20);
+	tps65910_clear_bits(tps65910, TPS65910_DEVCTRL, 0x20);
 	/* Clear RTC_PWDN bit */
 	tps65910_clear_bits(tps65910, TPS65910_DEVCTRL, 0x40);
 #else
