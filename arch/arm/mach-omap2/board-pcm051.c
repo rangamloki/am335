@@ -501,7 +501,8 @@ static int backlight_enable;
 
 static void enable_ecap0(void)
 {
-	backlight_enable = true;
+	backlight_enable = 1;
+	setup_pin_mux(ecap0_pin_mux);
 }
 
 #define PCM051_CBMUX_JP3_PIN    GPIO_TO_PIN(1, 8)
@@ -522,14 +523,12 @@ static struct pwmss_platform_data pwm_pdata = {
 
 static int __init ecap0_init(void)
 {
-	int status = 0;
-
 	if (backlight_enable) {
-		setup_pin_mux(ecap0_pin_mux);
 		am33xx_register_ecap(0, &pwm_pdata);
 		platform_device_register(&am335x_backlight);
 	}
-	return status;
+
+	return 0;
 }
 late_initcall(ecap0_init);
 
