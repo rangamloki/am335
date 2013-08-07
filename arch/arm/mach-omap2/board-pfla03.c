@@ -417,6 +417,14 @@ static struct pwmss_platform_data pwm_pdata = {
 	.version = PWM_VERSION_1
 };
 
+static int backlight_enable;
+
+static void enable_ecap2(void)
+{
+	backlight_enable = 1;
+	setup_pin_mux(ecap2_pin_mux);
+}
+
 static struct omap_musb_board_data pfla03_musb_board_data = {
 	.interface_type = MUSB_INTERFACE_ULPI,
 	/*
@@ -567,13 +575,13 @@ static void pfla03_eth_init(void)
 
 static int __init ecap2_init(void)
 {
-	int status = 0;
 
-	setup_pin_mux(ecap2_pin_mux);
-	am33xx_register_ecap(2, &pwm_pdata);
-	platform_device_register(&am335x_backlight);
+	if (backlight_enable) {
+		am33xx_register_ecap(2, &pwm_pdata);
+		platform_device_register(&am335x_backlight);
+	}
 
-	return status;
+	return 0;
 }
 late_initcall(ecap2_init);
 
@@ -664,6 +672,7 @@ static void __init pfla03_init(void)
 	if (clk_add_alias("sgx_ck", NULL, "gfx_fclk", NULL))
 		pr_warn("failed to create an alias: gfx_fclk --> sgx_ck\n");
 	am33xx_mux_init(board_mux);
+	enable_ecap2();
 	pfla03_i2c_init();
 	mmc0_init();
 	pfla03_nand_init();
