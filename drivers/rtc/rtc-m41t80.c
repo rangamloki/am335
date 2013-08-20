@@ -390,10 +390,7 @@ static irqreturn_t m41t80_rtc_interrupt(int irq, void *data)
 static struct rtc_class_ops m41t80_rtc_ops = {
 	.read_time = m41t80_rtc_read_time,
 	.set_time = m41t80_rtc_set_time,
-	.read_alarm = m41t80_rtc_read_alarm,
-	.set_alarm = m41t80_rtc_set_alarm,
 	.proc = m41t80_rtc_proc,
-	.alarm_irq_enable = m41t80_rtc_alarm_irq_enable,
 };
 
 #if defined(CONFIG_RTC_INTF_SYSFS) || defined(CONFIG_RTC_INTF_SYSFS_MODULE)
@@ -819,6 +816,22 @@ static int m41t80_probe(struct i2c_client *client,
 	clientdata->features = id->driver_data;
 	i2c_set_clientdata(client, clientdata);
 
+	if (client->irq > 0) {
+		rc = request_threaded_irq(client->irq, NULL,
+				m41t80_rtc_interrupt,
+				IRQF_TRIGGER_FALLING,
+				DRV_NAME, client);
+
+		if (!rc) {
+			m41t80_rtc_ops.read_alarm = m41t80_rtc_read_alarm;
+			m41t80_rtc_ops.set_alarm = m41t80_rtc_set_alarm;
+			m41t80_rtc_ops.alarm_irq_enable =
+						m41t80_rtc_alarm_irq_enable;
+		} else {
+			dev_err(&client->dev, "Failed to request RTC IRQ\n");
+		}
+	}
+
 	rtc = rtc_device_register(client->name, &client->dev,
 				  &m41t80_rtc_ops, THIS_MODULE);
 	if (IS_ERR(rtc)) {
@@ -866,13 +879,6 @@ static int m41t80_probe(struct i2c_client *client,
 	if (rc)
 		goto exit;
 
-	rc = request_threaded_irq(client->irq, NULL,
-			m41t80_rtc_interrupt,
-			IRQF_TRIGGER_FALLING,
-			DRV_NAME, client);
-
-	if (rc != 0)
-		dev_err(&client->dev, "Failed to request RTC IRQ\n");
 
 #ifdef CONFIG_RTC_DRV_M41T80_WDT
 	if (clientdata->features & M41T80_FEATURE_HT) {
