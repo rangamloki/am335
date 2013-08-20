@@ -973,6 +973,7 @@ static struct tps65910_board am335x_tps65910_info = {
 	.tps65910_pmic_init_data[TPS65910_REG_VAUX2]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VAUX33]	= &am335x_dummy,
 	.tps65910_pmic_init_data[TPS65910_REG_VMMC]	= &am335x_dummy,
+	.irq				= OMAP_GPIO_IRQ(GPIO_RTC_PMIC_IRQ),
 };
 
 #if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
@@ -1003,7 +1004,10 @@ static struct i2c_board_info __initdata pcm051_i2c_boardinfo[] = {
 	},
 	{
 		I2C_BOARD_INFO("rv4162c7", 0x68),
-		/* irq is defined at pcm051_rtc_irq_init() */
+#if !defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) && \
+		!defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+		.irq = OMAP_GPIO_IRQ(GPIO_RTC_RV4162C7_IRQ),
+#endif
 	},
 	{
 		I2C_BOARD_INFO("wm8974", 0x1a),
@@ -1062,12 +1066,8 @@ static void __init pcm051_rtc_irq_init(void)
 
 	setup_pin_mux(rtc_pin_mux);
 
-/* for LCD 018 the irq line is used by the multi touch  */
-#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
-		defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
-	pcm051_i2c_boardinfo[2].irq = -EINVAL;
-#else
-
+#if !defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) && \
+		!defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
 	/* Option 1: RV-4162 */
 	r = gpio_request_one(GPIO_RTC_RV4162C7_IRQ,
 				GPIOF_IN, "rtc-rv4162c7-irq");
@@ -1076,9 +1076,8 @@ static void __init pcm051_rtc_irq_init(void)
 				GPIO_RTC_RV4162C7_IRQ);
 		return;
 	}
-
-	pcm051_i2c_boardinfo[2].irq = gpio_to_irq(GPIO_RTC_RV4162C7_IRQ);
 #endif
+
 	/* Option 2: RTC in the TPS65910 PMIC */
 	if (omap_mux_init_signal("mii1_rxdv.gpio3_4", AM33XX_PIN_INPUT_PULLUP))
 		printk(KERN_WARNING "Failed to mux PMIC IRQ\n");
@@ -1086,8 +1085,6 @@ static void __init pcm051_rtc_irq_init(void)
 				GPIOF_IN, "rtc-tps65910-irq") < 0)
 		printk(KERN_WARNING "failed to request GPIO%d\n",
 				GPIO_RTC_PMIC_IRQ);
-	else
-		am335x_tps65910_info.irq = gpio_to_irq(GPIO_RTC_PMIC_IRQ);
 }
 
 static struct resource am33xx_cpuidle_resources[] = {
