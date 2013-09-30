@@ -23,6 +23,7 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/gpio.h>
 #include <linux/input.h>
@@ -185,6 +186,16 @@ static void am335x_nand_init(void)
 	omap_init_elm();
 }
 
+static struct i2c_board_info __initdata phycore_am335_i2c_boardinfo[] = {
+	{
+	},
+};
+static void __init phycore_am335_i2c_init(void)
+{
+	omap_register_i2c_bus(1, 100, phycore_am335_i2c_boardinfo,
+				ARRAY_SIZE(phycore_am335_i2c_boardinfo));
+}
+
 static void __init phycore_am335_init(void)
 {
 	am33xx_cpuidle_init();
@@ -192,6 +203,7 @@ static void __init phycore_am335_init(void)
 	omap_serial_init();
 	omap_sdrc_init(NULL, NULL);
 	am335x_nand_init();
+	phycore_am335_i2c_init();
 }
 
 static void __init am335x_map_io(void)
