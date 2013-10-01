@@ -24,6 +24,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/i2c.h>
+#include <linux/i2c/at24.h>
 #include <linux/module.h>
 #include <linux/gpio.h>
 #include <linux/input.h>
@@ -66,6 +67,8 @@
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(3, 4)
+
+#define EEPROM_I2C_ADDR         0x52
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -168,6 +171,13 @@ static struct gpmc_timings am335x_nand_timings = {
 	.wr_data_mux_bus = 0,
 };
 
+static struct at24_platform_data am335x_at24_eeprom_info = {
+	.byte_len       = (32*1024) / 8,
+	.page_size      = 32,
+	.flags          = AT24_FLAG_ADDR16,
+	.context        = (void *)NULL,
+};
+
 static struct regulator_init_data am335x_dummy = {
 	.constraints.always_on  = true,
 };
@@ -248,6 +258,11 @@ static struct i2c_board_info __initdata phycore_am335_i2c_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
 		.platform_data  = &am335x_tps65910_info,
+	},
+	{
+		/* Baseboard board EEPROM */
+		I2C_BOARD_INFO("24c32", EEPROM_I2C_ADDR),
+		.platform_data  = &am335x_at24_eeprom_info,
 	},
 };
 static void __init phycore_am335_i2c_init(void)
