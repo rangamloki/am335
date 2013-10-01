@@ -259,6 +259,7 @@ obj-$(CONFIG_MACH_AM335XIAEVM)		+= board-am335xevm.o
 obj-$(CONFIG_MACH_PCM051)		+= board-pcm051.o
 obj-$(CONFIG_MACH_PCAAXS1)		+= board-pcaaxs1.o
 obj-$(CONFIG_MACH_PFLA03)		+= board-pfla03.o
+obj-$(CONFIG_MACH_PHYCORE_AM335)	+= board-phycore-am335.o
 
 # Platform specific device init code
 
