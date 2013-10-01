@@ -379,6 +379,11 @@ config MACH_PFLA03
 	depends on SOC_OMAPAM33XX
 	default y
 
+config MACH_PHYCORE_AM335
+	bool "phyBOARDS phyCORE Am335"
+	depends on SOC_OMAPAM33XX
+	default y
+
 config OMAP3_EMU
 	bool "OMAP3 debugging peripherals"
 	depends on ARCH_OMAP3
