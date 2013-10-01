@@ -67,6 +67,7 @@
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(3, 4)
+#define GPIO_RTC_RV4162C7_IRQ  GPIO_TO_PIN(0, 20)
 
 #define EEPROM_I2C_ADDR         0x52
 
@@ -237,13 +238,25 @@ static void am335x_nand_init(void)
 }
 
 static struct pinmux_config rtc_pin_mux[] = {
+	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	/* gpio0_20 is shared by lcd touch irq and rtc irq */
 	{"mii1_rxdv.gpio3_4", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	{NULL, 0},
 };
 
 static void __init rtc_irq_init(void)
 {
+	int r;
 	setup_pin_mux(rtc_pin_mux);
+
+		/* Option 1: RV-4162 */
+	r = gpio_request_one(GPIO_RTC_RV4162C7_IRQ,
+				GPIOF_IN, "rtc-rv4162c7-irq");
+	if (r < 0) {
+		printk(KERN_WARNING "failed to request GPIO%d\n",
+				GPIO_RTC_RV4162C7_IRQ);
+		return;
+	}
 
 		/* Option 2: RTC in the TPS65910 PMIC */
 	if (omap_mux_init_signal("mii1_rxdv.gpio3_4", AM33XX_PIN_INPUT_PULLUP))
@@ -263,6 +276,10 @@ static struct i2c_board_info __initdata phycore_am335_i2c_boardinfo[] = {
 		/* Baseboard board EEPROM */
 		I2C_BOARD_INFO("24c32", EEPROM_I2C_ADDR),
 		.platform_data  = &am335x_at24_eeprom_info,
+	},
+	{
+		I2C_BOARD_INFO("rv4162c7", 0x68),
+		.irq = OMAP_GPIO_IRQ(GPIO_RTC_RV4162C7_IRQ),
 	},
 };
 static void __init phycore_am335_i2c_init(void)
