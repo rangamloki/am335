@@ -76,7 +76,7 @@
 					strcat(base,initfnc);\
 					int* (void) initfnc();
 
-static char *dummy = "pbac01";
+extern void am33xx_d_can_init(unsigned int instance);
 static char phycore_am335_carrier[12] = "none";
 
 static int __init phycore_am335_board_setup(char *str)
@@ -135,6 +135,12 @@ static struct pinmux_config pbac01_mmc0_pin_mux[] = {
 	{"mmc0_clk.mmc0_clk",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
 	{"mmc0_cmd.mmc0_cmd",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
 	{"spi0_cs1.mmc0_sdcd",  OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+static struct pinmux_config pbac01_d_can1_pin_mux[] = {
+	{"uart1_txd.dcan1_rx_mux2", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLUP},
+	{"uart1_rxd.dcan1_tx_mux2", OMAP_MUX_MODE2 | AM33XX_PULL_ENBL},
 	{NULL, 0},
 };
 
@@ -290,6 +296,13 @@ static void am335x_nand_init(void)
 	omap_init_elm();
 }
 
+static void pbac01_d_can_init(void)
+{
+	/* Instance Zero */
+	setup_pin_mux(pbac01_d_can1_pin_mux);
+	am33xx_d_can_init(1);
+}
+
 static struct pinmux_config rtc_pin_mux[] = {
 	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	/* gpio0_20 is shared by lcd touch irq and rtc irq */
@@ -352,6 +365,7 @@ static void __init phycore_am335_init(void)
 	phycore_am335_i2c_init();
 //	PHYCORE_AM335_BASE(mmc0_init, *dummy);
 	pbac01_mmc0_init();
+	pbac01_d_can_init();
 }
 
 static void __init am335x_map_io(void)
