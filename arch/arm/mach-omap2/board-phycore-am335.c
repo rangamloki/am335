@@ -53,6 +53,7 @@
 #include <plat/common.h>
 #include <plat/emif.h>
 #include <plat/nand.h>
+#include <plat/mmc.h>
 
 #include "board-flash.h"
 #include "cpuidle33xx.h"
@@ -70,6 +71,21 @@
 #define GPIO_RTC_RV4162C7_IRQ  GPIO_TO_PIN(0, 20)
 
 #define EEPROM_I2C_ADDR         0x52
+
+#define PHYCORE_AM335_BASE(initfnc, base) strcat(base, "_");\
+					strcat(base,initfnc);\
+					int* (void) initfnc();
+
+static char *dummy = "pbac01";
+static char phycore_am335_carrier[12] = "none";
+
+static int __init phycore_am335_board_setup(char *str)
+{
+	if (str)
+	strlcpy(phycore_am335_carrier, str, sizeof(phycore_am335_carrier));
+	return 0;
+}
+__setup("board=", phycore_am335_board_setup);
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -109,6 +125,43 @@ static struct pinmux_config nand_pin_mux[] = {
 	{"gpmc_ben0_cle.gpmc_ben0_cle",  OMAP_MUX_MODE0 | AM33XX_PULL_DISA},
 	{NULL, 0},
 };
+
+/* Module pin mux for mmc0 */
+static struct pinmux_config pbac01_mmc0_pin_mux[] = {
+	{"mmc0_dat3.mmc0_dat3", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat2.mmc0_dat2", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat1.mmc0_dat1", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat0.mmc0_dat0", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_clk.mmc0_clk",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_cmd.mmc0_cmd",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"spi0_cs1.mmc0_sdcd",  OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+static struct omap2_hsmmc_info pbac01_mmc[] __initdata = {
+	{
+		.mmc            = 1,
+		.caps           = MMC_CAP_4_BIT_DATA,
+		.gpio_cd        = GPIO_TO_PIN(0, 6),
+		.gpio_wp        = -EINVAL,
+		.ocr_mask       = MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
+	},
+	{
+		.mmc            = 0,    /* will be set at runtime */
+	},
+	{
+		.mmc            = 0,    /* will be set at runtime */
+	},
+	{}      /* Terminator */
+};
+
+static void pbac01_mmc0_init(void)
+{
+        setup_pin_mux(pbac01_mmc0_pin_mux);
+
+        omap2_hsmmc_init(pbac01_mmc);
+        return;
+}
 
 static struct resource am33xx_cpuidle_resources[] = {
 	{
@@ -297,6 +350,8 @@ static void __init phycore_am335_init(void)
 	am335x_nand_init();
 	rtc_irq_init();
 	phycore_am335_i2c_init();
+//	PHYCORE_AM335_BASE(mmc0_init, *dummy);
+	pbac01_mmc0_init();
 }
 
 static void __init am335x_map_io(void)
