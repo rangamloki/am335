@@ -54,6 +54,7 @@
 #include <plat/common.h>
 #include <plat/emif.h>
 #include <plat/nand.h>
+#include <plat/mmc.h>
 
 #include "board-flash.h"
 #include "cpuidle33xx.h"
@@ -130,6 +131,18 @@ static struct pinmux_config nand_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for mmc0 */
+static struct pinmux_config pbac01_mmc0_pin_mux[] = {
+	{"mmc0_dat3.mmc0_dat3", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat2.mmc0_dat2", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat1.mmc0_dat1", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_dat0.mmc0_dat0", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_clk.mmc0_clk",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mmc0_cmd.mmc0_cmd",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"spi0_cs1.mmc0_sdcd",  OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
 static struct resource am33xx_cpuidle_resources[] = {
 	{
 		.start          = AM33XX_EMIF0_BASE,
@@ -199,6 +212,23 @@ static struct at24_platform_data am335x_at24_eeprom_info = {
 	.context        = (void *)NULL,
 };
 
+static struct omap2_hsmmc_info pbac01_mmc[] __initdata = {
+	{
+		.mmc            = 1,
+		.caps           = MMC_CAP_4_BIT_DATA,
+		.gpio_cd        = GPIO_TO_PIN(0, 6),
+		.gpio_wp        = -EINVAL,
+		.ocr_mask       = MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
+	},
+	{
+		.mmc            = 0,    /* will be set at runtime */
+	},
+	{
+		.mmc            = 0,    /* will be set at runtime */
+	},
+	{}      /* Terminator */
+};
+
 static struct regulator_init_data am335x_dummy = {
 	.constraints.always_on  = true,
 };
@@ -257,6 +287,15 @@ static void am335x_nand_init(void)
 	omap_init_elm();
 }
 
+static void pbac01_mmc0_init(void)
+{
+	setup_pin_mux(pbac01_mmc0_pin_mux);
+
+	omap2_hsmmc_init(pbac01_mmc);
+	return;
+}
+
+
 static struct pinmux_config rtc_pin_mux[] = {
 	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
 	/* gpio0_20 is shared by lcd touch irq and rtc irq */
@@ -309,6 +348,7 @@ static void __init phycore_am335_i2c_init(void)
 }
 
 static struct phycore_am335_carrier list_devices[] = {
+	{ "pba-c-01", pbac01_mmc0_init },
 	{"null", NULL},
 };
 static void __init phycore_am335_init(void)
