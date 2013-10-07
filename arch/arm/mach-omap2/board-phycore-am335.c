@@ -41,6 +41,7 @@
 #include <linux/mtd/partitions.h>
 
 #include <mach/hardware.h>
+#include <mach/board-phycore-am335.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
