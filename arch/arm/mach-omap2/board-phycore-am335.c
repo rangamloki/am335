@@ -25,6 +25,7 @@
 #include <linux/init.h>
 #include <linux/i2c.h>
 #include <linux/i2c/at24.h>
+#include <linux/phy.h>
 #include <linux/module.h>
 #include <linux/gpio.h>
 #include <linux/input.h>
@@ -39,6 +40,7 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
+#include <linux/micrel_phy.h>
 
 #include <mach/hardware.h>
 #include <mach/board-phycore-am335.h>
@@ -155,6 +157,25 @@ static struct pinmux_config rmii1_pin_mux[] = {
 	{"mii1_rxd0.mii1_rxd0", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
 	{"rmii1_refclk.rmii1_refclk", OMAP_MUX_MODE0 |
 					AM33XX_PIN_INPUT_PULLDOWN},
+	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
+	{NULL, 0},
+};
+
+/* Module pin mux for rgmii2 */
+static struct pinmux_config rgmii2_pin_mux[] = {
+	{"gpmc_a0.rgmii2_tctl", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a1.rgmii2_rctl", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a2.rgmii2_td3", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a3.rgmii2_td2", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a4.rgmii2_td1", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a5.rgmii2_td0", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a6.rgmii2_tclk", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
+	{"gpmc_a7.rgmii2_rclk", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a8.rgmii2_rd3", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a9.rgmii2_rd2", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a10.rgmii2_rd1", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"gpmc_a11.rgmii2_rd0", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
 	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
 	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
 	{NULL, 0},
@@ -283,6 +304,33 @@ static struct tps65910_board am335x_tps65910_info = {
 	.irq                            = OMAP_GPIO_IRQ(GPIO_RTC_PMIC_IRQ),
 };
 
+static int pbac01_ksz9021_phy_fixup(struct phy_device *phydev)
+{
+	/* Set KSZ9021_CLKSKEW */
+	phy_write(phydev, KSZ9021_EXTCTRL, (KSZ9021_WRBIT | KSZ9021_CLKSKEW));
+	phy_write(phydev, KSZ9021_EXTWR, KSZ9021_CLKSKEW_VAL);
+
+	phy_write(phydev, KSZ9021_EXTCTRL, KSZ9021_CLKSKEW);
+	printk(KERN_INFO "CLKSKEW == 0x%x\n", (phy_read(phydev,
+						KSZ9021_EXTRD)));
+
+	/* Set KSZ9021_RXSKEW */
+	phy_write(phydev, KSZ9021_EXTCTRL, (KSZ9021_WRBIT | KSZ9021_RXSKEW));
+	phy_write(phydev, KSZ9021_EXTWR, KSZ9021_RXSKEW_VAL);
+
+	phy_write(phydev, KSZ9021_EXTCTRL, KSZ9021_RXSKEW);
+	printk(KERN_INFO "RXSKEW == 0x%x\n", (phy_read(phydev, KSZ9021_EXTRD)));
+
+	/* Set KSZ9021_TXSKEW */
+	phy_write(phydev, KSZ9021_EXTCTRL, (KSZ9021_WRBIT | KSZ9021_TXSKEW));
+	phy_write(phydev, KSZ9021_EXTWR, KSZ9021_TXSKEW_VAL);
+
+	phy_write(phydev, KSZ9021_EXTCTRL, KSZ9021_TXSKEW);
+	printk(KERN_INFO "TXSKEW == 0x%x\n", (phy_read(phydev, KSZ9021_EXTRD)));
+
+	return 0;
+}
+
 static void am335x_nand_init(void)
 {
 	struct omap_nand_platform_data *pdata;
@@ -315,6 +363,12 @@ static void pbac01_mmc0_init(void)
 static void rmii1_init(void)
 {
 	setup_pin_mux(rmii1_pin_mux);
+	return;
+}
+
+static void rgmii2_init(void)
+{
+	setup_pin_mux(rgmii2_pin_mux);
 	return;
 }
 
@@ -351,7 +405,10 @@ static void __init rtc_irq_init(void)
 static void pbac01_ethernet_init(void)
 {
 	rmii1_init();
-	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII, NULL, NULL);
+	rgmii2_init();
+	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII1_RGMII2, NULL, NULL);
+	phy_register_fixup_for_uid(PHY_ID_KSZ9021, 0x000ffffe,
+					pbac01_ksz9021_phy_fixup);
 }
 
 static struct i2c_board_info __initdata phycore_am335_i2c_boardinfo[] = {

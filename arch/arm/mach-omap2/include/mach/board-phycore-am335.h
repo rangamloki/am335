@@ -22,6 +22,21 @@
 
 #define CB_STR_LEN 20
 
+/* KSZ9021 PHY/MDIO REGS */
+#define KSZ9021_EXTCTRL		0xB
+#define KSZ9021_EXTWR		0xC
+#define KSZ9021_EXTRD		0xD
+#define KSZ9021_WRBIT		BIT(15)
+
+#define KSZ9021_CLKSKEW		0x104
+#define KSZ9021_CLKSKEW_VAL	0x7070
+
+#define KSZ9021_RXSKEW		0x105
+#define KSZ9021_RXSKEW_VAL	0x0000
+
+#define KSZ9021_TXSKEW		0x106
+#define KSZ9021_TXSKEW_VAL	0x0000
+
 static unsigned int valid_brd_name;
 
 struct phycore_am335_carrier {
