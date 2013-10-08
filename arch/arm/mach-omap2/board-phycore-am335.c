@@ -143,6 +143,22 @@ static struct pinmux_config pbac01_mmc0_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for rmii1 */
+static struct pinmux_config rmii1_pin_mux[] = {
+	{"mii1_crs.rmii1_crs_dv", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxerr.mii1_rxerr", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_txen.mii1_txen", OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd1.mii1_txd1", OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_txd0.mii1_txd0", OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"mii1_rxd1.mii1_rxd1", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mii1_rxd0.mii1_rxd0", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"rmii1_refclk.rmii1_refclk", OMAP_MUX_MODE0 |
+					AM33XX_PIN_INPUT_PULLDOWN},
+	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
+	{NULL, 0},
+};
+
 static struct resource am33xx_cpuidle_resources[] = {
 	{
 		.start          = AM33XX_EMIF0_BASE,
@@ -295,6 +311,11 @@ static void pbac01_mmc0_init(void)
 	return;
 }
 
+static void rmii1_init(void)
+{
+	setup_pin_mux(rmii1_pin_mux);
+	return;
+}
 
 static struct pinmux_config rtc_pin_mux[] = {
 	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
@@ -326,6 +347,12 @@ static void __init rtc_irq_init(void)
 					GPIO_RTC_PMIC_IRQ);
 }
 
+static void pbac01_ethernet_init(void)
+{
+	rmii1_init();
+	am33xx_cpsw_init(AM33XX_CPSW_MODE_RMII, NULL, NULL);
+}
+
 static struct i2c_board_info __initdata phycore_am335_i2c_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
@@ -349,6 +376,7 @@ static void __init phycore_am335_i2c_init(void)
 
 static struct phycore_am335_carrier list_devices[] = {
 	{ "pba-c-01", pbac01_mmc0_init },
+	{ "pba-c-01", pbac01_ethernet_init },
 	{"null", NULL},
 };
 static void __init phycore_am335_init(void)
