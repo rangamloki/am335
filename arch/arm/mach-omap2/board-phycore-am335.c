@@ -57,6 +57,7 @@
 #include <plat/emif.h>
 #include <plat/nand.h>
 #include <plat/mmc.h>
+#include <plat/usb.h>
 
 #include "board-flash.h"
 #include "cpuidle33xx.h"
@@ -177,6 +178,22 @@ static struct pinmux_config rgmii2_pin_mux[] = {
 	{"gpmc_a11.rgmii2_rd0", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
 	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
 	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
+	{NULL, 0},
+};
+
+/* pinmux for usb0 drvvbus */
+static struct pinmux_config usb0_pin_mux[] = {
+	{"usb0_drvvbus.usb0_drvvbus",   OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_ahclkr.gpio3_17",      OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
+						AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+/* pinmux for usb1 drvvbus */
+static struct pinmux_config usb1_pin_mux[] = {
+	{"usb1_drvvbus.usb1_drvvbus",   OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_aclkr.gpio3_18",       OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
+						AM33XX_PIN_INPUT_PULLUP},
 	{NULL, 0},
 };
 
@@ -330,6 +347,18 @@ static int pbac01_ksz9021_phy_fixup(struct phy_device *phydev)
 	return 0;
 }
 
+static struct omap_musb_board_data musb_board_data = {
+	.interface_type = MUSB_INTERFACE_ULPI,
+	/*
+	* mode[0:3] = USB0PORT's mode
+	* mode[4:7] = USB1PORT's mode
+	* PCM051 has USB0 in OTG mode and USB1 in host mode.
+	*/
+	.mode           = (MUSB_HOST << 4) | MUSB_OTG,
+	.power          = 500,
+	.instances      = 1,
+};
+
 static void am335x_nand_init(void)
 {
 	struct omap_nand_platform_data *pdata;
@@ -368,6 +397,14 @@ static void rmii1_init(void)
 static void rgmii2_init(void)
 {
 	setup_pin_mux(rgmii2_pin_mux);
+	return;
+}
+
+static void usb_init(void)
+{
+	setup_pin_mux(usb0_pin_mux);
+	setup_pin_mux(usb1_pin_mux);
+	usb_musb_init(&musb_board_data);
 	return;
 }
 
@@ -446,6 +483,7 @@ static void __init phycore_am335_init(void)
 	am335x_nand_init();
 	rtc_irq_init();
 	phycore_am335_i2c_init();
+	usb_init();
 
 	for(i = 0; i < ARRAY_SIZE(list_devices); i++)
 	{
