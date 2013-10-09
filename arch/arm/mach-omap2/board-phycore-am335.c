@@ -41,6 +41,7 @@
 #include <linux/mtd/partitions.h>
 
 #include <mach/hardware.h>
+#include <mach/board-phycore-am335.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -70,6 +71,26 @@
 #define GPIO_RTC_RV4162C7_IRQ  GPIO_TO_PIN(0, 20)
 
 #define EEPROM_I2C_ADDR         0x52
+
+static char phycore_carrier_str[CB_STR_LEN] __initdata = "none";
+
+static int __init phycore_am335_board_setup(char *str)
+{
+	int i;
+	if (str) {
+		strlcpy(phycore_carrier_str, str, sizeof(phycore_carrier_str));
+		for (i = 0; i < ARRAY_SIZE(list_boards); i++) {
+			if (strcmp(phycore_carrier_str,
+						list_boards[i].name) == 0)
+				valid_brd_name = 1;
+		}
+	}
+	if (!valid_brd_name)
+		printk(KERN_WARNING "WARNING! No valid carrier Board found !!!\n");
+
+	return 0;
+}
+__setup("board=", phycore_am335_board_setup);
 
 /* module pin mux structure */
 struct pinmux_config {
@@ -288,8 +309,12 @@ static void __init phycore_am335_i2c_init(void)
 				ARRAY_SIZE(phycore_am335_i2c_boardinfo));
 }
 
+static struct phycore_am335_carrier list_devices[] = {
+	{"null", NULL},
+};
 static void __init phycore_am335_init(void)
 {
+	int i;
 	am33xx_cpuidle_init();
 	am33xx_mux_init(NULL);
 	omap_serial_init();
@@ -297,6 +322,12 @@ static void __init phycore_am335_init(void)
 	am335x_nand_init();
 	rtc_irq_init();
 	phycore_am335_i2c_init();
+
+	for (i = 0; i < ARRAY_SIZE(list_devices); i++) {
+		if (strcmp(phycore_carrier_str,
+				list_devices[i].board_name) == 0)
+			list_devices[i].devinit();
+	}
 }
 
 static void __init am335x_map_io(void)
