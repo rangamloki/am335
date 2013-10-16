@@ -35,12 +35,16 @@
 #include <linux/export.h>
 #include <linux/ethtool.h>
 #include <linux/mfd/tps65910.h>
+#include <linux/pwm_backlight.h>
 #include <linux/reboot.h>
 #include <linux/opp.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
 #include <linux/micrel_phy.h>
+#include <linux/pwm/pwm.h>
+
+#include <video/da8xx-fb.h>
 
 #include <mach/hardware.h>
 #include <mach/board-phycore-am335.h>
@@ -58,6 +62,7 @@
 #include <plat/nand.h>
 #include <plat/mmc.h>
 #include <plat/usb.h>
+#include <plat/lcdc.h>
 
 #include "board-flash.h"
 #include "cpuidle33xx.h"
@@ -75,6 +80,13 @@
 #define GPIO_RTC_RV4162C7_IRQ  GPIO_TO_PIN(0, 20)
 
 #define EEPROM_I2C_ADDR         0x52
+
+/* LCD backlight platform Data */
+#define AM335X_BACKLIGHT_MAX_BRIGHTNESS		100
+#define AM335X_BACKLIGHT_DEFAULT_BRIGHTNESS	0
+#define AM335X_PWM_PERIOD_NANO_SECONDS		100000
+
+#define PWM_DEVICE_ID	"ecap.0"
 
 static char phycore_carrier_str[CB_STR_LEN] __initdata = "none";
 
@@ -182,6 +194,55 @@ static struct pinmux_config rgmii2_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for LCDC */
+static struct pinmux_config lcdc_pin_mux[] = {
+	{"lcd_data0.lcd_data0",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data1.lcd_data1",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data2.lcd_data2",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data3.lcd_data3",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data4.lcd_data4",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data5.lcd_data5",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data6.lcd_data6",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data7.lcd_data7",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data8.lcd_data8",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data9.lcd_data9",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data10.lcd_data10",       OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data11.lcd_data11",       OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data12.lcd_data12",       OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data13.lcd_data13",       OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data14.lcd_data14",       OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"lcd_data15.lcd_data15",       OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
+							| AM33XX_PULL_DISA},
+	{"gpmc_ad8.lcd_data16",         OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad9.lcd_data17",         OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad10.lcd_data18",        OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad11.lcd_data19",        OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad12.lcd_data20",        OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad13.lcd_data21",        OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad14.lcd_data22",        OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"gpmc_ad15.lcd_data23",        OMAP_MUX_MODE1 | AM33XX_PIN_OUTPUT},
+	{"lcd_vsync.lcd_vsync",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"lcd_hsync.lcd_hsync",         OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"lcd_pclk.lcd_pclk",           OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"lcd_ac_bias_en.lcd_ac_bias_en", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
 /* pinmux for usb0 drvvbus */
 static struct pinmux_config usb0_pin_mux[] = {
 	{"usb0_drvvbus.usb0_drvvbus",   OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
@@ -195,6 +256,12 @@ static struct pinmux_config usb1_pin_mux[] = {
 	{"usb1_drvvbus.usb1_drvvbus",   OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{"mcasp0_aclkr.gpio3_18",       OMAP_MUX_MODE7 | AM33XX_PULL_ENBL |
 						AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+static struct pinmux_config ecap0_pin_mux[] = {
+	{"ecap0_in_pwm0_out.ecap0_in_pwm0_out",
+			OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -360,6 +427,81 @@ static struct omap_musb_board_data musb_board_data = {
 	.instances      = 1,
 };
 
+static struct platform_pwm_backlight_data am335x_backlight_data = {
+	.pwm_id         = PWM_DEVICE_ID,
+	.ch             = -1,
+	.max_brightness = AM335X_BACKLIGHT_MAX_BRIGHTNESS,
+	.dft_brightness = AM335X_BACKLIGHT_DEFAULT_BRIGHTNESS,
+	.pwm_period_ns  = AM335X_PWM_PERIOD_NANO_SECONDS,
+};
+
+/* Setup pwm-backlight */
+static struct platform_device am335x_backlight = {
+	.name           = "pwm-backlight",
+	.id             = -1,
+	.dev            = {
+		.platform_data  = &am335x_backlight_data,
+	}
+};
+
+static struct pwmss_platform_data pwm_pdata = {
+	.version = PWM_VERSION_1
+};
+
+static const struct display_panel disp_panel = {
+	WVGA,
+	32,
+	32,
+	COLOR_ACTIVE,
+};
+
+static struct lcd_ctrl_config lcd_cfg = {
+	&disp_panel,
+	.ac_bias                = 40,
+	.ac_bias_intrpt         = 0,
+	.dma_burst_sz           = 16,
+	.bpp                    = 32,
+	.fdd                    = 0x80,
+	.tft_alt_mode           = 0,
+	.stn_565_mode           = 0,
+	.mono_8bit_mode         = 0,
+	.invert_line_clock      = 1,
+	.invert_frm_clock       = 1,
+	.sync_edge              = 0,
+	.sync_ctrl              = 1,
+	.raster_order           = 0,
+};
+
+static struct da8xx_lcdc_platform_data lcdc_pdata[] = {
+	{
+		.manu_name              = "Emerging",
+		.controller_data        = &lcd_cfg,
+		.type                   = "ETM0700G0DH6",
+	},
+	{
+		.manu_name              = "PrimeView",
+		.controller_data        = &lcd_cfg,
+		.type                   = "PV_PM070WL4",
+	}, {
+		.manu_name              = "PrimeView",
+		.controller_data        = &lcd_cfg,
+		.type                   = "PV_PD035VL1",
+	}, {
+		.manu_name              = "PrimeView",
+		.controller_data        = &lcd_cfg,
+		.type                   = "PV_PD050VL1",
+	}, {
+		.manu_name              = "PrimeView",
+		.controller_data        = &lcd_cfg,
+		.type                   = "PV_PD104SLF",
+	}
+};
+
+static struct da8xx_lcdc_selection_platform_data lcdc_selection_pdata = {
+	.entries_ptr = lcdc_pdata,
+	.entries_cnt = ARRAY_SIZE(lcdc_pdata)
+};
+
 static void am335x_nand_init(void)
 {
 	struct omap_nand_platform_data *pdata;
@@ -406,6 +548,48 @@ static void usb_init(void)
 	setup_pin_mux(usb0_pin_mux);
 	setup_pin_mux(usb1_pin_mux);
 	usb_musb_init(&musb_board_data);
+	return;
+}
+
+static int __init ecap0_init(void)
+{
+	setup_pin_mux(ecap0_pin_mux);
+	am33xx_register_ecap(0, &pwm_pdata);
+	platform_device_register(&am335x_backlight);
+
+	return 0;
+}
+late_initcall(ecap0_init);
+
+static int __init conf_disp_pll(int rate)
+{
+	struct clk *disp_pll;
+	int ret = -EINVAL;
+
+	disp_pll = clk_get(NULL, "dpll_disp_ck");
+	if (IS_ERR(disp_pll)) {
+		pr_err("Cannot clk_get disp_pll\n");
+		goto out;
+	}
+
+	ret = clk_set_rate(disp_pll, rate);
+	clk_put(disp_pll);
+out:
+	return ret;
+}
+
+static void lcdc_init(void)
+{
+	setup_pin_mux(lcdc_pin_mux);
+
+	if (conf_disp_pll(300000000)) {
+		pr_info("Failed configure display PLL, not attempting to"
+				"register LCDC\n");
+	return;
+	}
+
+	if (am33xx_register_lcdc(&lcdc_selection_pdata))
+		pr_info("Failed to register LCDC device\n");
 	return;
 }
 
@@ -485,6 +669,7 @@ static void __init phycore_am335_init(void)
 	rtc_irq_init();
 	phycore_am335_i2c_init();
 	usb_init();
+	lcdc_init();
 
 	for (i = 0; i < ARRAY_SIZE(list_devices); i++) {
 		if (strcmp(phycore_carrier_str,

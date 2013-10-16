@@ -2240,7 +2240,7 @@ config FB_DA8XX
 
 config FB_DA8XX_CONSISTENT_DMA_SIZE
 	int "Consistent DMA memory size (MB)"
-	depends on FB_DA8XX && (MACH_PCM051 || MACH_AM335XEVM || MACH_PCAAXS1 || MACH_PFLA03)
+	depends on FB_DA8XX && (MACH_PCM051 || MACH_AM335XEVM || MACH_PCAAXS1 || MACH_PFLA03 || MACH_PHYCORE_AM335)
 	range 1 14
 	default 4
 	help
