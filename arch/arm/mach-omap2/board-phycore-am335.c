@@ -36,6 +36,7 @@
 #include <linux/ethtool.h>
 #include <linux/mfd/tps65910.h>
 #include <linux/pwm_backlight.h>
+#include <linux/input/edt-ft5x06.h>
 #include <linux/reboot.h>
 #include <linux/opp.h>
 #include <linux/mtd/mtd.h>
@@ -75,6 +76,11 @@
 
 /* Convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
+
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+		defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+#define AM335X_PHYCORE_EDT_FT5X06_GPIO_IRQ GPIO_TO_PIN(3, 19)
+#endif
 
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(3, 4)
 #define GPIO_RTC_RV4162C7_IRQ  GPIO_TO_PIN(0, 20)
@@ -632,7 +638,23 @@ static void pbac01_ethernet_init(void)
 					pbac01_ksz9021_phy_fixup);
 }
 
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+		defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+static struct edt_ft5x06_platform_data pba_ft5x06_data = {
+	.reset_pin      = -1,           /* static high */
+	.irq_pin        = AM335X_PHYCORE_EDT_FT5X06_GPIO_IRQ,
+};
+#endif
+
 static struct i2c_board_info __initdata phycore_am335_i2c_boardinfo[] = {
+#if defined(CONFIG_TOUCHSCREEN_EDT_FT5X06) || \
+		defined(CONFIG_TOUCHSCREEN_EDT_FT5X06_MODULE)
+	{
+		I2C_BOARD_INFO("edt-ft5x06", 0x38),
+		.irq = OMAP_GPIO_IRQ(AM335X_PHYCORE_EDT_FT5X06_GPIO_IRQ),
+		.platform_data = &pba_ft5x06_data,
+	},
+#endif
 	{
 		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID1),
 		.platform_data  = &am335x_tps65910_info,
