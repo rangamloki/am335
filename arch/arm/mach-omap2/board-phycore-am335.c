@@ -37,6 +37,9 @@
 #include <linux/mfd/tps65910.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input/edt-ft5x06.h>
+#include <linux/input/ti_tsc.h>
+#include <linux/platform_data/ti_adc.h>
+#include <linux/mfd/ti_tscadc.h>
 #include <linux/reboot.h>
 #include <linux/opp.h>
 #include <linux/mtd/mtd.h>
@@ -508,6 +511,24 @@ static struct da8xx_lcdc_selection_platform_data lcdc_selection_pdata = {
 	.entries_cnt = ARRAY_SIZE(lcdc_pdata)
 };
 
+#if defined CONFIG_TOUCHSCREEN_TI_TSC && \
+		CONFIG_MFD_TI_TSCADC
+static struct tsc_data am335x_touchscreen_data  = {
+	.wires  = 4,
+	.x_plate_resistance = 200,
+	.steps_to_configure = 5,
+};
+
+static struct adc_data am335x_adc_data = {
+	.adc_channels = 4,
+};
+
+static struct mfd_tscadc_board tscadc = {
+	.tsc_init = &am335x_touchscreen_data,
+	.adc_init = &am335x_adc_data,
+};
+#endif
+
 static void am335x_nand_init(void)
 {
 	struct omap_nand_platform_data *pdata;
@@ -598,6 +619,18 @@ static void lcdc_init(void)
 		pr_info("Failed to register LCDC device\n");
 	return;
 }
+
+#if defined CONFIG_TOUCHSCREEN_TI_TSC && \
+		CONFIG_MFD_TI_TSCADC
+static void tsc_init(void)
+{
+	int err;
+
+	err = am33xx_register_mfd_tscadc(&tscadc);
+	if (err)
+		pr_err("failed to register touchscreen device\n");
+}
+#endif
 
 static struct pinmux_config rtc_pin_mux[] = {
 	{"xdma_event_intr1.gpio0_20", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
@@ -693,6 +726,10 @@ static void __init phycore_am335_init(void)
 	usb_init();
 	lcdc_init();
 
+#if defined CONFIG_TOUCHSCREEN_TI_TSC && \
+		CONFIG_MFD_TI_TSCADC
+	tsc_init();
+#endif
 	for (i = 0; i < ARRAY_SIZE(list_devices); i++) {
 		if (strcmp(phycore_carrier_str,
 				list_devices[i].board_name) == 0)
