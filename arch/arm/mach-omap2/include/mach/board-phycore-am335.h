@@ -37,6 +37,8 @@
 #define KSZ9021_TXSKEW		0x106
 #define KSZ9021_TXSKEW_VAL	0x0000
 
+void am33xx_d_can_init(unsigned int instance);
+
 static unsigned int valid_brd_name;
 
 struct phycore_am335_carrier {

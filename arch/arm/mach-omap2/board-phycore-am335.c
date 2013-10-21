@@ -87,6 +87,7 @@
 
 #define GPIO_RTC_PMIC_IRQ  GPIO_TO_PIN(3, 4)
 #define GPIO_RTC_RV4162C7_IRQ  GPIO_TO_PIN(0, 20)
+#define GPIO_D_CAN_EN	GPIO_TO_PIN(1, 8)
 
 #define EEPROM_I2C_ADDR         0x52
 
@@ -165,6 +166,14 @@ static struct pinmux_config pbac01_mmc0_pin_mux[] = {
 	{"mmc0_clk.mmc0_clk",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
 	{"mmc0_cmd.mmc0_cmd",   OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
 	{"spi0_cs1.mmc0_sdcd",  OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+
+/* Module pin mux for d_can0 on pba-c-01 */
+static struct pinmux_config pbac01_d_can1_pin_mux[] = {
+	{"uart1_txd.dcan1_rx_mux2", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLUP},
+	{"uart1_rxd.dcan1_tx_mux2", OMAP_MUX_MODE2 | AM33XX_PULL_ENBL},
+	{"uart0_ctsn.gpio1_8", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -588,6 +597,24 @@ static void pbac01_mmc0_init(void)
 	return;
 }
 
+static void pbac01_d_can_init(void)
+{
+	int status;
+
+	/* Instance Zero */
+	setup_pin_mux(pbac01_d_can1_pin_mux);
+
+	status = gpio_request(GPIO_D_CAN_EN, "d_can_en\n");
+	if (status < 0) {
+		pr_err("Failed to request gpio for d_can enable\n");
+		return;
+	}
+
+	gpio_direction_output(GPIO_D_CAN_EN, 1);
+
+	am33xx_d_can_init(1);
+}
+
 static void rmii1_init(void)
 {
 	setup_pin_mux(rmii1_pin_mux);
@@ -754,6 +781,7 @@ static struct phycore_am335_carrier list_devices[] = {
 	{ "pba-c-01", pbac01_mmc0_init },
 	{ "pba-c-01", pbac01_ethernet_init },
 	{ "pba-c-01", pbac01_mcasp0_init },
+	{ "pba-c-01", pbac01_d_can_init },
 	{"null", NULL},
 };
 static void __init phycore_am335_init(void)
