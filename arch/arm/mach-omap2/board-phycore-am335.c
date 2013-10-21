@@ -252,6 +252,16 @@ static struct pinmux_config lcdc_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* Module pin mux for mcasp0 */
+static struct pinmux_config pbac01_mcasp0_pin_mux[] = {
+	{"mcasp0_aclkx.mcasp0_aclkx", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_fsx.mcasp0_fsx", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_axr0.mcasp0_axr0", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLDOWN},
+	{"mcasp0_axr1.mcasp0_axr1", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{"mcasp0_ahclkx.mcasp0_ahclkx", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
 /* pinmux for usb0 drvvbus */
 static struct pinmux_config usb0_pin_mux[] = {
 	{"usb0_drvvbus.usb0_drvvbus",   OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT},
@@ -529,6 +539,26 @@ static struct mfd_tscadc_board tscadc = {
 };
 #endif
 
+static u8 am335x_iis_serializer_direction0[] = {
+	RX_MODE,        TX_MODE,        INACTIVE_MODE,  INACTIVE_MODE,
+	INACTIVE_MODE,  INACTIVE_MODE,  INACTIVE_MODE,  INACTIVE_MODE,
+	INACTIVE_MODE,  INACTIVE_MODE,  INACTIVE_MODE,  INACTIVE_MODE,
+	INACTIVE_MODE,  INACTIVE_MODE,  INACTIVE_MODE,  INACTIVE_MODE,
+};
+
+static struct snd_platform_data pbac01_snd_data0 = {
+	.tx_dma_offset  = 0x46000000,   /* McASP0 */
+	.rx_dma_offset  = 0x46000000,
+	.op_mode        = DAVINCI_MCASP_IIS_MODE,
+	.num_serializer = ARRAY_SIZE(am335x_iis_serializer_direction0),
+	.tdm_slots      = 2,
+	.serial_dir     = am335x_iis_serializer_direction0,
+	.asp_chan_q     = EVENTQ_2, /* davinci-mcsap driver does not use it */
+	.version        = MCASP_VERSION_3,
+	.txnumevt       = 1,
+	.rxnumevt       = 1,
+};
+
 static void am335x_nand_init(void)
 {
 	struct omap_nand_platform_data *pdata;
@@ -662,6 +692,15 @@ static void __init rtc_irq_init(void)
 					GPIO_RTC_PMIC_IRQ);
 }
 
+/* Setup McASP 0 (Multichannel Audio Serial Port) */
+static void pbac01_mcasp0_init(void)
+{
+	/* Configure McASP */
+	setup_pin_mux(pbac01_mcasp0_pin_mux);
+	am335x_register_mcasp(&pbac01_snd_data0, 0);
+	return;
+}
+
 static void pbac01_ethernet_init(void)
 {
 	rmii1_init();
@@ -701,6 +740,9 @@ static struct i2c_board_info __initdata phycore_am335_i2c_boardinfo[] = {
 		I2C_BOARD_INFO("rv4162c7", 0x68),
 		.irq = OMAP_GPIO_IRQ(GPIO_RTC_RV4162C7_IRQ),
 	},
+	{
+		I2C_BOARD_INFO("wm8974", 0x1a),
+	},
 };
 static void __init phycore_am335_i2c_init(void)
 {
@@ -711,6 +753,7 @@ static void __init phycore_am335_i2c_init(void)
 static struct phycore_am335_carrier list_devices[] = {
 	{ "pba-c-01", pbac01_mmc0_init },
 	{ "pba-c-01", pbac01_ethernet_init },
+	{ "pba-c-01", pbac01_mcasp0_init },
 	{"null", NULL},
 };
 static void __init phycore_am335_init(void)
